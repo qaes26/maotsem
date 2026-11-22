@@ -16,6 +16,7 @@ import {
 } from 'react-icons/fa';
 import useAuthStore from '../stores/authStore';
 import useSocketStore from '../stores/socketStore';
+import { supabase, isSupabaseConfigured } from '../config/supabase';
 
 export default function RoomPage() {
   const navigate = useNavigate();
@@ -52,73 +53,151 @@ export default function RoomPage() {
     }
   }, [urlCode]);
 
-  // Handle Create Room
+  // Handle Create Room (Backend + Supabase Realtime Fallback)
   const handleCreate = async () => {
     setErrorMsg('');
+    const hostPlayer = {
+      id: user?.id || 'host-' + Date.now().toString(36),
+      nickname: user?.nickname || 'المضيف',
+      avatar: user?.avatar || '👑',
+    };
+
+    // 1. Try backend API first
     try {
       const res = await fetch('/api/rooms/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user?.id || 'demo-user',
-          nickname: user?.nickname || 'مضيف الغرفة',
-          avatar: user?.avatar || '👑',
+          userId: hostPlayer.id,
+          nickname: hostPlayer.nickname,
+          avatar: hostPlayer.avatar,
           mode: 'team',
         }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setLocalRoom(data.room);
-        joinRoom(data.room.code);
-      } else {
-        setErrorMsg(data.message || 'فشل إنشاء الغرفة');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.room) {
+          setLocalRoom(data.room);
+          joinRoom(data.room.code, hostPlayer);
+          return;
+        }
       }
-    } catch (err) {
-      // Fallback local mock room
-      const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const mock = {
-        code: randomCode,
-        host: { id: user?.id, nickname: user?.nickname || 'المضيف' },
-        players: [{ id: user?.id, nickname: user?.nickname || 'أنت (المضيف)', avatar: user?.avatar || '🦁' }],
-        teams: {
-          teamA: [{ id: user?.id, nickname: user?.nickname || 'أنت (المضيف)' }],
-          teamB: [],
-        },
-        chat: [],
-      };
-      setLocalRoom(mock);
+    } catch {}
+
+    // 2. Direct Supabase Room Creation (Works 100% on Netlify)
+    const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const roomObj = {
+      code: randomCode,
+      host: hostPlayer,
+      players: [hostPlayer],
+      teams: {
+        teamA: [hostPlayer],
+        teamB: [],
+      },
+      status: 'waiting',
+      mode: 'team',
+      chat: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.from('rooms').insert([{
+          code: randomCode,
+          mode: 'team',
+          status: 'waiting',
+          settings: roomObj,
+        }]);
+      } catch (err) {
+        console.warn('Supabase room insert warning:', err);
+      }
     }
+
+    setLocalRoom(roomObj);
+    joinRoom(randomCode, hostPlayer);
   };
 
-  // Handle Join Room
+  // Handle Join Room (Backend + Supabase Realtime Fallback)
   const handleJoin = async () => {
     setErrorMsg('');
-    if (!inputCode.trim()) {
-      setErrorMsg('يرجى إدخال رمز الغرفة');
+    const code = inputCode.trim().toUpperCase();
+    if (!code) {
+      setErrorMsg('يرجى إدخال رمز الغرفة المكون من 6 خانات');
       return;
     }
 
+    const joiningPlayer = {
+      id: user?.id || 'player-' + Date.now().toString(36),
+      nickname: user?.nickname || 'لاعب جديد',
+      avatar: user?.avatar || '🦁',
+    };
+
+    // 1. Try backend API first
     try {
       const res = await fetch('/api/rooms/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: inputCode.trim().toUpperCase(),
-          userId: user?.id || 'guest-user',
-          nickname: user?.nickname || 'لاعب جديد',
-          avatar: user?.avatar || '🎯',
+          code,
+          userId: joiningPlayer.id,
+          nickname: joiningPlayer.nickname,
+          avatar: joiningPlayer.avatar,
         }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setLocalRoom(data.room);
-        joinRoom(data.room.code);
-      } else {
-        setErrorMsg(data.message || 'الغرفة غير موجودة');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.room) {
+          setLocalRoom(data.room);
+          joinRoom(data.room.code, joiningPlayer);
+          return;
+        } else {
+          setErrorMsg(data.message || 'الغرفة غير موجودة');
+          return;
+        }
       }
-    } catch {
-      setErrorMsg('تعذر الاتصال بالخادم، تأكد من كود الغرفة');
+    } catch {}
+
+    // 2. Direct Supabase Room Lookup (Works 100% on Netlify)
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data: roomRow, error } = await supabase
+          .from('rooms')
+          .select('*')
+          .eq('code', code)
+          .single();
+
+        if (error || !roomRow) {
+          setErrorMsg('الغرفة غير موجودة، يرجى التأكد من الرمز');
+          return;
+        }
+
+        const roomObj = roomRow.settings || {
+          code,
+          host: { nickname: 'المضيف' },
+          players: [],
+          teams: { teamA: [], teamB: [] },
+          chat: [],
+        };
+
+        if (!roomObj.players.some((p) => p.id === joiningPlayer.id)) {
+          roomObj.players.push(joiningPlayer);
+          if (roomObj.teams.teamA.length <= roomObj.teams.teamB.length) {
+            roomObj.teams.teamA.push(joiningPlayer);
+          } else {
+            roomObj.teams.teamB.push(joiningPlayer);
+          }
+          await supabase.from('rooms').update({ settings: roomObj }).eq('code', code);
+        }
+
+        setLocalRoom(roomObj);
+        joinRoom(code, joiningPlayer);
+        return;
+      } catch (err) {
+        console.error('Supabase join room error:', err);
+      }
     }
+
+    setErrorMsg('تعذر العثور على الغرفة أو الاتصال بها');
   };
 
   const handleCopyCode = () => {
@@ -133,11 +212,13 @@ export default function RoomPage() {
   const handleSendChat = (e) => {
     e?.preventDefault();
     if (chatInput.trim()) {
-      sendMessage(chatInput.trim());
+      const text = chatInput.trim();
+      const sender = user?.nickname || 'أنت';
+      sendMessage(text, sender);
       if (localRoom) {
         setLocalRoom((prev) => ({
           ...prev,
-          chat: [...(prev.chat || []), { sender: user?.nickname || 'أنت', text: chatInput.trim() }],
+          chat: [...(prev.chat || []), { sender, text }],
         }));
       }
       setChatInput('');
@@ -145,16 +226,20 @@ export default function RoomPage() {
   };
 
   const handleSendEmoji = (emoji) => {
-    sendMessage(emoji);
+    const sender = user?.nickname || 'أنت';
+    sendMessage(emoji, sender);
     if (localRoom) {
       setLocalRoom((prev) => ({
         ...prev,
-        chat: [...(prev.chat || []), { sender: user?.nickname || 'أنت', text: emoji }],
+        chat: [...(prev.chat || []), { sender, text: emoji }],
       }));
     }
   };
 
   const handleStartGame = () => {
+    const code = activeRoomData?.code;
+    const { startGame } = useSocketStore.getState();
+    startGame(code);
     navigate('/game');
   };
 

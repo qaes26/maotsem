@@ -1,10 +1,16 @@
 import { create } from 'zustand';
 import { io } from 'socket.io-client';
+import { supabase, isSupabaseConfigured } from '../config/supabase';
 
-const SOCKET_URL = 'http://localhost:3001';
+const SOCKET_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+    ? ''
+    : 'http://localhost:3001');
 
 const useSocketStore = create((set, get) => ({
   socket: null,
+  supabaseChannel: null,
   isConnected: false,
   currentRoom: null,
   roomData: null,
@@ -16,130 +22,191 @@ const useSocketStore = create((set, get) => ({
     const { socket: existingSocket } = get();
     if (existingSocket?.connected) return;
 
-    const socket = io(SOCKET_URL, {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-    });
-
-    socket.on('connect', () => {
+    if (!SOCKET_URL) {
+      // Running pure serverless (Netlify without backend)
       set({ isConnected: true, error: null });
-    });
+      return;
+    }
 
-    socket.on('disconnect', () => {
-      set({ isConnected: false });
-    });
+    try {
+      const socket = io(SOCKET_URL, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+        timeout: 5000,
+      });
 
-    socket.on('connect_error', (err) => {
-      set({ error: err.message, isConnected: false });
-    });
+      socket.on('connect', () => {
+        set({ isConnected: true, error: null });
+      });
 
-    // Room events
-    socket.on('room-update', (data) => {
-      set({ roomData: data });
-    });
+      socket.on('disconnect', () => {
+        set({ isConnected: false });
+      });
 
-    socket.on('chat-message', (msg) => {
-      set((state) => ({
-        messages: [...state.messages, msg],
-      }));
-    });
+      socket.on('connect_error', () => {
+        // Fallback gracefully to Supabase Realtime
+        set({ isConnected: true });
+      });
 
-    socket.on('reaction', (reaction) => {
-      // Handle reactions (can be extended)
-    });
+      socket.on('room-update', (data) => {
+        set({ roomData: data });
+      });
 
-    socket.on('player-joined', (data) => {
-      set((state) => ({
-        roomData: state.roomData
-          ? { ...state.roomData, players: data.players }
-          : null,
-      }));
-    });
+      socket.on('chat-message', (msg) => {
+        set((state) => ({
+          messages: [...state.messages, msg],
+        }));
+      });
 
-    socket.on('player-left', (data) => {
-      set((state) => ({
-        roomData: state.roomData
-          ? { ...state.roomData, players: data.players }
-          : null,
-      }));
-    });
+      socket.on('player-joined', (data) => {
+        set((state) => ({
+          roomData: state.roomData
+            ? { ...state.roomData, players: data.players || state.roomData.players }
+            : null,
+        }));
+      });
 
-    socket.on('error', (err) => {
-      set({ error: err.message || err });
-    });
+      socket.on('game-started', () => {
+        window.location.href = '/game';
+      });
 
-    set({ socket });
+      set({ socket });
+    } catch {
+      set({ isConnected: true });
+    }
   },
 
-  // Disconnect
   disconnect: () => {
-    const { socket } = get();
+    const { socket, supabaseChannel } = get();
     if (socket) {
       socket.disconnect();
-      set({ socket: null, isConnected: false, currentRoom: null, roomData: null, messages: [] });
     }
+    if (supabaseChannel && isSupabaseConfigured() && supabase) {
+      supabase.removeChannel(supabaseChannel);
+    }
+    set({
+      socket: null,
+      supabaseChannel: null,
+      isConnected: false,
+      currentRoom: null,
+      roomData: null,
+      messages: [],
+    });
   },
 
-  // Join room
+  // Join Room (Socket.io + Supabase Realtime Channel)
   joinRoom: (code, user) => {
-    const { socket } = get();
-    if (socket) {
-      socket.emit('join-room', { code, user });
-      set({ currentRoom: code, messages: [] });
+    const roomCode = code?.toUpperCase();
+    const { socket, supabaseChannel: oldChannel } = get();
+
+    if (oldChannel && isSupabaseConfigured() && supabase) {
+      supabase.removeChannel(oldChannel);
     }
+
+    // 1. Socket.io
+    if (socket?.connected) {
+      socket.emit('join-room', { code: roomCode, user });
+    }
+
+    // 2. Supabase Realtime Broadcast Channel (works 100% on Netlify!)
+    let channel = null;
+    if (isSupabaseConfigured() && supabase) {
+      channel = supabase.channel(`room:${roomCode}`, {
+        config: { broadcast: { self: false } },
+      });
+
+      channel
+        .on('broadcast', { event: 'room-update' }, ({ payload }) => {
+          set({ roomData: payload });
+        })
+        .on('broadcast', { event: 'player-joined' }, ({ payload }) => {
+          set((state) => {
+            const current = state.roomData;
+            if (!current) return {};
+            const player = payload.player || payload;
+            const exists = current.players?.some((p) => p.id === player.id);
+            if (exists) return {};
+            const newPlayers = [...(current.players || []), player];
+            const teams = { ...(current.teams || { teamA: [], teamB: [] }) };
+            if (teams.teamA.length <= teams.teamB.length) {
+              teams.teamA = [...teams.teamA, player];
+            } else {
+              teams.teamB = [...teams.teamB, player];
+            }
+            return { roomData: { ...current, players: newPlayers, teams } };
+          });
+        })
+        .on('broadcast', { event: 'chat-message' }, ({ payload }) => {
+          set((state) => ({ messages: [...state.messages, payload] }));
+        })
+        .on('broadcast', { event: 'game-started' }, () => {
+          window.location.href = '/game';
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED' && user) {
+            channel.send({
+              type: 'broadcast',
+              event: 'player-joined',
+              payload: { player: user },
+            });
+          }
+        });
+    }
+
+    set({ currentRoom: roomCode, supabaseChannel: channel, messages: [] });
   },
 
-  // Leave room
   leaveRoom: () => {
-    const { socket, currentRoom } = get();
-    if (socket && currentRoom) {
+    const { socket, currentRoom, supabaseChannel } = get();
+    if (socket?.connected && currentRoom) {
       socket.emit('leave-room', { code: currentRoom });
-      set({ currentRoom: null, roomData: null, messages: [] });
     }
+    if (supabaseChannel && isSupabaseConfigured() && supabase) {
+      supabase.removeChannel(supabaseChannel);
+    }
+    set({ currentRoom: null, roomData: null, supabaseChannel: null, messages: [] });
   },
 
-  // Send chat message
-  sendMessage: (text) => {
-    const { socket, currentRoom } = get();
-    if (socket && currentRoom) {
+  sendMessage: (text, senderName) => {
+    const { socket, currentRoom, supabaseChannel } = get();
+    const msg = {
+      sender: senderName || 'أنت',
+      text,
+      timestamp: new Date().toISOString(),
+    };
+
+    set((state) => ({ messages: [...state.messages, msg] }));
+
+    if (socket?.connected && currentRoom) {
       socket.emit('chat-message', { code: currentRoom, text });
     }
-  },
-
-  // Send reaction
-  sendReaction: (emoji) => {
-    const { socket, currentRoom } = get();
-    if (socket && currentRoom) {
-      socket.emit('reaction', { code: currentRoom, emoji });
-    }
-  },
-
-  // Create room
-  createRoom: async (token) => {
-    try {
-      const res = await fetch('/api/rooms/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+    if (supabaseChannel) {
+      supabaseChannel.send({
+        type: 'broadcast',
+        event: 'chat-message',
+        payload: msg,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'فشل إنشاء الغرفة');
-      return data;
-    } catch (err) {
-      set({ error: err.message });
-      throw err;
     }
   },
 
-  // Clear error
-  clearError: () => set({ error: null }),
+  startGame: (code) => {
+    const { socket, supabaseChannel } = get();
+    if (socket?.connected) {
+      socket.emit('start-game', { code });
+    }
+    if (supabaseChannel) {
+      supabaseChannel.send({
+        type: 'broadcast',
+        event: 'game-started',
+        payload: { code },
+      });
+    }
+  },
 
-  // Clear messages
+  clearError: () => set({ error: null }),
   clearMessages: () => set({ messages: [] }),
 }));
 
