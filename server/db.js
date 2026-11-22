@@ -88,10 +88,37 @@ class Database {
 
   // ---------- Users ----------
   async getUserByPhone(phone) {
-    if (!this.useSupabase) return localDb.getUserByPhone(phone);
-    const { data, error } = await supabase.from('profiles').select('*').eq('phone', phone).single();
-    if (error || !data) return localDb.getUserByPhone(phone);
+    if (!phone) return null;
+    const cleanPhone = phone.toString().trim();
+    if (!this.useSupabase) return localDb.getUserByPhone(cleanPhone);
+    const { data, error } = await supabase.from('profiles').select('*').eq('phone', cleanPhone).single();
+    if (error || !data) return localDb.getUserByPhone(cleanPhone);
     return this._mapProfileFromSupabase(data);
+  }
+
+  async getUserByNickname(nickname) {
+    if (!nickname) return null;
+    const clean = nickname.toString().trim();
+    if (!clean) return null;
+
+    if (!this.useSupabase) {
+      const all = localDb.getAllUsers();
+      return all.find(u => u.nickname && u.nickname.trim().toLowerCase() === clean.toLowerCase()) || null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('nickname', clean)
+        .limit(1);
+
+      if (error || !data || data.length === 0) return null;
+      return this._mapProfileFromSupabase(data[0]);
+    } catch (e) {
+      console.warn('[DB] getUserByNickname error:', e.message);
+      return null;
+    }
   }
 
   async getUserById(id) {

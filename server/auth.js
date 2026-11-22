@@ -21,6 +21,126 @@ const tokenStore = {
   delete: (token) => db.removeToken(token),
 };
 
+// ============================================
+// 📱 POST /api/auth/login (تسجيل الدخول بالرقم واليوزر نيم وما يتكرر)
+// ============================================
+router.post('/login', async (req, res) => {
+  try {
+    let { phone, nickname, avatar } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'يرجى إدخال رقم الهاتف' });
+    }
+
+    const cleanPhone = phone.toString().trim().replace(/[^\d+]/g, '');
+    if (cleanPhone.length < 6) {
+      return res.status(400).json({ success: false, message: 'رقم الهاتف قصير جداً وغير صالح (6 أرقام على الأقل)' });
+    }
+
+    const cleanNickname = (nickname || '').toString().trim();
+    if (!cleanNickname || cleanNickname.length < 2) {
+      return res.status(400).json({ success: false, message: 'يرجى إدخال اسم مستخدم لا يقل عن حرفين' });
+    }
+
+    // Uniqueness Checks ("وما يتكرر")
+    const existingByPhone = await db.getUserByPhone(cleanPhone);
+    const existingByNick = await db.getUserByNickname(cleanNickname);
+
+    // Case 1: Phone already exists (Returning user)
+    if (existingByPhone) {
+      // Check if the requested nickname belongs to ANOTHER player
+      if (existingByNick && existingByNick.phone !== cleanPhone) {
+        return res.status(400).json({
+          success: false,
+          message: `اسم المستخدم "${cleanNickname}" محجوز للاعب آخر، يرجى اختيار اسم مستخدم مميز`,
+        });
+      }
+
+      // Update nickname if updated, update last login
+      if (existingByPhone.nickname !== cleanNickname) {
+        existingByPhone.nickname = cleanNickname;
+      }
+      if (avatar) existingByPhone.avatar = avatar;
+      existingByPhone.lastLoginAt = new Date().toISOString();
+      await db.saveUser(existingByPhone);
+
+      const token = uuidv4();
+      db.setToken(token, cleanPhone);
+
+      return res.json({
+        success: true,
+        message: `مرحباً بك مجدداً يا ${existingByPhone.nickname}!`,
+        user: existingByPhone,
+        token,
+        isNewUser: false,
+      });
+    }
+
+    // Case 2: New Phone registration
+    if (existingByNick) {
+      return res.status(400).json({
+        success: false,
+        message: `اسم المستخدم "${cleanNickname}" مستخدم بالفعل من قبل لاعب آخر، يرجى اختيار اسم آخر غير مكرر`,
+      });
+    }
+
+    // Create new player profile
+    const newUser = {
+      id: uuidv4(),
+      phone: cleanPhone,
+      nickname: cleanNickname,
+      avatar: avatar || '🦁',
+      points: 0,
+      gamesPlayed: 0,
+      gamesWon: 0,
+      totalCorrect: 0,
+      totalWrong: 0,
+      winStreak: 0,
+      bestStreak: 0,
+      badges: ['newbie'],
+      banned: false,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    };
+
+    await db.saveUser(newUser);
+
+    const token = uuidv4();
+    db.setToken(token, cleanPhone);
+
+    console.log(`👤 [Auth / DB] New user registered: ${cleanPhone} (${cleanNickname})`);
+
+    return res.json({
+      success: true,
+      message: `أهلاً بك يا ${cleanNickname}! تم تسجيل حسابك بنجاح`,
+      user: newUser,
+      token,
+      isNewUser: true,
+    });
+  } catch (err) {
+    console.error('[Auth] Login error:', err);
+    res.status(500).json({ success: false, message: err.message || 'حدث خطأ أثناء تسجيل الدخول' });
+  }
+});
+
+// POST /api/auth/check-username (فحص توفر اسم المستخدم)
+router.post('/check-username', async (req, res) => {
+  try {
+    const { nickname, currentPhone } = req.body;
+    if (!nickname || nickname.trim().length < 2) {
+      return res.json({ available: false, message: 'اسم المستخدم قصير جداً' });
+    }
+    const clean = nickname.trim();
+    const existing = await db.getUserByNickname(clean);
+    if (!existing || (currentPhone && existing.phone === currentPhone)) {
+      return res.json({ available: true, message: 'اسم المستخدم متاح' });
+    }
+    return res.json({ available: false, message: 'اسم المستخدم محجوز مسبقاً' });
+  } catch (e) {
+    res.json({ available: true });
+  }
+});
+
 // POST /api/auth/send-otp
 router.post('/send-otp', async (req, res) => {
   const { phone } = req.body;

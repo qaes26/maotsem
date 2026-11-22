@@ -53,6 +53,40 @@
       "banned": false,
       "createdAt": "2026-11-22T20:58:37.239053+00:00",
       "lastLoginAt": "2026-11-22T20:58:35.935+00:00"
+    },
+    "0799999991": {
+      "id": "97741eb0-fc84-485d-9447-042a02c2299c",
+      "phone": "0799999991",
+      "nickname": "معتصم البطل",
+      "avatar": "👑",
+      "points": 0,
+      "gamesPlayed": 0,
+      "gamesWon": 0,
+      "totalCorrect": 0,
+      "totalWrong": 0,
+      "winStreak": 0,
+      "bestStreak": 0,
+      "badges": [],
+      "banned": false,
+      "createdAt": "2026-11-22T21:52:38.390279+00:00",
+      "lastLoginAt": "2026-11-22T21:52:39.506+00:00"
+    },
+    "0799999992": {
+      "id": "8209037d-b442-4022-a24e-596c04ea6e07",
+      "phone": "0799999992",
+      "nickname": "أبو قيس الأسطورة",
+      "avatar": "🦅",
+      "points": 0,
+      "gamesPlayed": 0,
+      "gamesWon": 0,
+      "totalCorrect": 0,
+      "totalWrong": 0,
+      "winStreak": 0,
+      "bestStreak": 0,
+      "badges": [],
+      "banned": false,
+      "createdAt": "2026-11-22T21:52:40.022924+00:00",
+      "lastLoginAt": "2026-11-22T21:52:38.577+00:00"
     }
   },
   "rooms": {},
@@ -63,7 +97,10 @@
     "a6fce571-66d9-4866-afde-6dc499507e1a": "+96690980000",
     "84fe6675-cbd6-476d-8967-586fd8e75d8e": "+962791234567",
     "c686a3a9-b90c-42df-b1a0-9b1feb6885e4": "+966500000001",
-    "9110f1cb-b31b-40bf-bd17-e38689257cc4": "+962791234567"
+    "9110f1cb-b31b-40bf-bd17-e38689257cc4": "+962791234567",
+    "699c3fa7-5383-47e7-b12c-97d4ca41fe07": "0799999991",
+    "d474ded2-0904-4b04-b103-7069df994471": "0799999992",
+    "a7738b7e-ceea-4ddb-ba85-bc782d3db569": "0799999991"
   },
   "otps": {}
 }

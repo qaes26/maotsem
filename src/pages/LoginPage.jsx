@@ -1,21 +1,29 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaGamepad,
   FaShieldAlt,
   FaTrophy,
-  FaCloud,
   FaUsers,
   FaBolt,
   FaCheckCircle,
+  FaPhoneAlt,
+  FaUser,
 } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import useAuthStore from '../stores/authStore';
 
+const AVATARS = ['🦁', '🦅', '🐯', '🐺', '👑', '⚡', '🎯', '🚀', '🔥', '💎'];
+
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { signInWithGoogle, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+  const { loginWithPhoneAndUsername, signInWithGoogle, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+
+  const [phone, setPhone] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState('🦁');
+  const [successNotice, setSuccessNotice] = useState('');
 
   // Redirect if already logged in
   useEffect(() => {
@@ -24,109 +32,235 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, navigate]);
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    clearError();
+    setSuccessNotice('');
+
+    if (!phone.trim()) {
+      useAuthStore.setState({ error: 'يرجى إدخال رقم الهاتف' });
+      return;
+    }
+    if (!nickname.trim()) {
+      useAuthStore.setState({ error: 'يرجى إدخال اسم المستخدم' });
+      return;
+    }
+
+    const res = await loginWithPhoneAndUsername({
+      phone: phone.trim(),
+      nickname: nickname.trim(),
+      avatar: selectedAvatar,
+    });
+
+    if (res?.success) {
+      setSuccessNotice(res.message || 'تم تسجيل الدخول بنجاح! جاري الانتقال...');
+      setTimeout(() => {
+        navigate('/');
+      }, 700);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     clearError();
     try {
       await signInWithGoogle();
-    } catch {
-      // Error handled in store
-    }
+    } catch {}
   };
 
   const benefits = [
     {
-      icon: FaTrophy,
+      icon: FaBolt,
       color: 'text-amber-400',
-      title: 'بطولات الأفرقة الكبرى',
-      desc: 'المنافسة في 5 جولات متتالية ورفع كأس البطولة وحفظ سجلك',
+      title: 'دخول فوري بدون انتظار',
+      desc: 'فقط برقم هاتفك واسمك المستعار، لا داعي لرموز تحقق أو أكواد SMS',
     },
     {
-      icon: FaCloud,
+      icon: FaUser,
+      color: 'text-cyan-400',
+      title: 'اسم مستعار فريد لك',
+      desc: 'اسمك وهويتك خاصة بك وحدك ولا يمكن تكرارها لأي لاعب آخر',
+    },
+    {
+      icon: FaTrophy,
       color: 'text-emerald-400',
       title: 'حفظ سحابي دائم عبر Supabase',
-      desc: 'نقاطك وإحصائياتك وألقابك محفوظة بأمان ولن تضيع أبداً',
+      desc: 'نقاطك وإحصائياتك وألقابك وسجل انتصاراتك محفوظة بأمان',
     },
     {
       icon: FaUsers,
-      color: 'text-cyan-400',
-      title: 'غرف اللعب التنافسية',
-      desc: 'إنشاء ومشاركة غرف اللعب المباشرة مع أصدقائك بكود خاص',
-    },
-    {
-      icon: FaBolt,
       color: 'text-pink-400',
-      title: 'دخول فوري بنقرة واحدة',
-      desc: 'بدون أي انتظار أو رموز تحقق SMS، ادخل وابدأ اللعب فوراً',
+      title: 'تحدي الأصدقاء في الغرف والبطولات',
+      desc: 'إنشاء ومشاركة غرف اللعب المباشرة فور تسجيلك بكل سهولة',
     },
   ];
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-12">
+    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-10 font-arabic" dir="rtl">
       <div className="w-full max-w-lg">
         {/* Brand Card */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center mb-6"
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-accent golden-glow mb-4 shadow-xl">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-accent golden-glow mb-3 shadow-xl">
             <FaGamepad className="text-4xl text-[var(--color-primary)]" />
           </div>
-          <h1 className="text-3xl font-extrabold text-white mb-2">لعبة حخلص عليك</h1>
-          <p className="text-white/60 text-sm">المنصة التنافسية الكبرى للألعاب والتحديات العربية</p>
+          <h1 className="text-3xl font-black text-white mb-1.5 tracking-wide">لعبة حخلص عليك</h1>
+          <p className="text-white/60 text-xs sm:text-sm">معركة العقول الكبرى والتحديات الرياضية والثقافية</p>
         </motion.div>
 
         {/* Main Sign-In Card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden"
+          className="glass-card p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden backdrop-blur-xl"
         >
           <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-white mb-2">تسجيل الدخول المباشر</h2>
-            <p className="text-xs text-white/60 leading-relaxed">
-              سجّل دخولك فوراً باستخدام حساب <span className="text-white font-semibold">Google</span> للوصول لكامل أطوار اللعبة والبطولات.
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-accent/20 text-accent border border-accent/30 mb-2">
+              <span>⚡</span> تسجيل سريع وفوري
+            </span>
+            <h2 className="text-xl font-bold text-white">تسجيل الدخول بالرقم واسم المستخدم</h2>
+            <p className="text-xs text-white/60 mt-1">
+              أدخل رقم هاتفك واسمك المستعار لتبدأ اللعب فوراً بدون أي كود تحقق
             </p>
           </div>
 
-          {/* Google Sign-In Button */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            disabled={isLoading}
-            onClick={handleGoogleLogin}
-            className="w-full py-4 px-6 rounded-2xl font-bold text-slate-900 bg-white hover:bg-slate-50 shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-3 border border-slate-200"
-          >
-            {isLoading ? (
-              <div className="w-6 h-6 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <FcGoogle className="text-2xl flex-shrink-0" />
-                <span className="text-base font-bold">تسجيل الدخول باستخدام Google</span>
-              </>
-            )}
-          </motion.button>
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Phone Input */}
+            <div>
+              <label className="text-xs font-bold text-gray-300 block mb-1.5 flex items-center gap-1.5">
+                <FaPhoneAlt className="text-accent text-xs" />
+                <span>رقم الهاتف *</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="مثال: 0791234567 أو 0501234567"
+                  dir="ltr"
+                  className="w-full bg-surface border border-surface-light rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition text-left text-sm font-mono tracking-wider"
+                  required
+                />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">يستخدم لربط حسابك وسجل نقاطك بأمان</p>
+            </div>
 
-          {/* Error Message */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-4 p-3.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-xs text-center font-medium leading-relaxed"
+            {/* Username Input */}
+            <div>
+              <label className="text-xs font-bold text-gray-300 block mb-1.5 flex items-center gap-1.5">
+                <FaUser className="text-accent text-xs" />
+                <span>اسم المستخدم / اللقب (فريد ولا يتكرر) *</span>
+              </label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="مثال: أبو قيس، صانع الألعاب، النمر..."
+                className="w-full bg-surface border border-surface-light rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition text-sm font-bold"
+                required
+              />
+              <p className="text-[11px] text-gray-400 mt-1">هذا الاسم سيظهر للجميع في المباريات ولوحة المتصدرين</p>
+            </div>
+
+            {/* Avatar Selector */}
+            <div>
+              <label className="text-xs font-bold text-gray-300 block mb-1.5">اختر صورة الأفاتار الخاصة بك:</label>
+              <div className="flex items-center gap-2 overflow-x-auto py-1 px-1 bg-surface-dark/80 rounded-xl border border-surface-light">
+                {AVATARS.map((av) => (
+                  <button
+                    key={av}
+                    type="button"
+                    onClick={() => setSelectedAvatar(av)}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${
+                      selectedAvatar === av
+                        ? 'bg-accent/30 border-2 border-accent scale-110 shadow-lg shadow-accent/30'
+                        : 'hover:bg-surface border border-transparent'
+                    }`}
+                  >
+                    {av}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Error Message */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="p-3.5 rounded-xl bg-danger/20 border border-danger/40 text-red-300 text-xs font-bold text-center leading-relaxed"
+                >
+                  ⚠️ {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Success Message */}
+            <AnimatePresence>
+              {successNotice && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="p-3.5 rounded-xl bg-success/20 border border-success/40 text-success text-xs font-bold text-center flex items-center justify-center gap-2"
+                >
+                  <FaCheckCircle className="text-base" />
+                  <span>{successNotice}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Submit Button */}
+            <motion.button
+              type="submit"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={isLoading}
+              className="w-full py-3.5 px-6 rounded-xl font-black text-primary bg-gradient-to-r from-accent to-yellow-500 hover:brightness-110 shadow-xl shadow-accent/25 transition-all flex items-center justify-center gap-2 text-base disabled:opacity-50 mt-2"
             >
-              {error}
-            </motion.div>
-          )}
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <FaBolt className="text-lg" />
+                  <span>دخول أو إنشاء حساب فوري ⚡</span>
+                </>
+              )}
+            </motion.button>
+          </form>
 
-          {/* Security & Cloud Badge */}
-          <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-center gap-2 text-xs text-white/50">
+          {/* Divider */}
+          <div className="relative my-6 text-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10" />
+            </div>
+            <span className="relative bg-[#111a33] px-3 text-[11px] text-gray-400 font-bold">أو</span>
+          </div>
+
+          {/* Optional Google Login */}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+            className="w-full py-3 px-4 rounded-xl font-bold text-gray-200 bg-surface/70 hover:bg-surface border border-surface-light hover:border-gray-400 transition-all flex items-center justify-center gap-2.5 text-xs"
+          >
+            <FcGoogle className="text-lg" />
+            <span>تسجيل الدخول السريع عبر Google</span>
+          </button>
+
+          {/* Security Badge */}
+          <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-center gap-2 text-[11px] text-white/50">
             <FaShieldAlt className="text-emerald-400" />
-            <span>مصادقة رسمية وآمنة 100% عبر Supabase Cloud</span>
+            <span>حفظ تلقائي وفوري ومزامنة سحابية مع Supabase</span>
           </div>
         </motion.div>
 
-        {/* Feature Highlights Grid */}
+        {/* Benefits Grid */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -140,7 +274,7 @@ export default function LoginPage() {
                 key={idx}
                 className="p-3.5 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm flex items-start gap-3"
               >
-                <div className={`p-2 rounded-xl bg-white/5 ${b.color} flex-shrink-0 text-base mt-0.5`}>
+                <div className={`p-2 rounded-xl bg-white/5 ${b.color} flex-shrink-0 text-sm mt-0.5`}>
                   <Icon />
                 </div>
                 <div>

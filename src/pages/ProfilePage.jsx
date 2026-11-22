@@ -112,13 +112,14 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            {/* Email / ID badge */}
+            {/* Phone / ID badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/80" dir="ltr">
-              <span className="font-mono">{user?.email || user?.phone || 'مستخدم مسجل'}</span>
+              <FaPhoneAlt className="text-accent text-[10px]" />
+              <span className="font-mono">{user?.phone || user?.email || 'مستخدم مسجل'}</span>
               <FaCheckCircle className="text-[var(--color-success)] text-xs ml-1" title="حساب موثق" />
             </div>
 
-            <p className="text-xs text-white/50">عضو نشط في حخلص عليك • حساب موثق عبر Google و Supabase</p>
+            <p className="text-xs text-white/50">عضو نشط في حخلص عليك • حساب محفوظ في قاعدة بيانات Supabase</p>
 
             {savedSuccess && (
               <div className="text-xs text-[var(--color-success)] font-bold pt-1">
