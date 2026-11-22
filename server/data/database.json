@@ -1,0 +1,69 @@
+{
+  "users": {
+    "+966500000001": {
+      "id": "fb-uid-test-123",
+      "firebaseUid": "fb-uid-test-123",
+      "phone": "+966500000001",
+      "nickname": "??????_???????",
+      "avatar": "??",
+      "points": 0,
+      "gamesPlayed": 0,
+      "gamesWon": 0,
+      "banned": false,
+      "createdAt": "2026-11-13T16:51:08.151Z",
+      "lastLoginAt": "2026-11-22T20:37:26.860Z"
+    },
+    "+966555987654": {
+      "id": "82c6c808-ebeb-4003-8464-8db6ffa2dd8f",
+      "phone": "+966555987654",
+      "nickname": "لاعب_7654",
+      "avatar": "🦁",
+      "points": 0,
+      "gamesPlayed": 0,
+      "gamesWon": 0,
+      "banned": false,
+      "createdAt": "2026-11-13T16:51:25.276Z",
+      "lastLoginAt": "2026-11-13T16:51:25.276Z"
+    },
+    "+96690980000": {
+      "id": "d4ae002e-e51f-437e-988a-abd08b0d61a8",
+      "phone": "+96690980000",
+      "nickname": "لاعب_0000",
+      "avatar": "🦁",
+      "points": 0,
+      "gamesPlayed": 0,
+      "gamesWon": 0,
+      "banned": false,
+      "createdAt": "2026-11-13T17:26:03.634Z",
+      "lastLoginAt": "2026-11-13T17:26:03.634Z"
+    },
+    "+962791234567": {
+      "id": "44c41bc0-4cde-40de-80a2-71390d639e51",
+      "phone": "+962791234567",
+      "nickname": "لاعب_4567",
+      "avatar": "🦁",
+      "points": 0,
+      "gamesPlayed": 0,
+      "gamesWon": 0,
+      "totalCorrect": 0,
+      "totalWrong": 0,
+      "winStreak": 0,
+      "bestStreak": 0,
+      "badges": [],
+      "banned": false,
+      "createdAt": "2026-11-22T20:58:37.239053+00:00",
+      "lastLoginAt": "2026-11-22T20:58:35.935+00:00"
+    }
+  },
+  "rooms": {},
+  "gameStats": {},
+  "tokens": {
+    "890d5ae3-3f9a-4db4-b605-8ef3957eec8e": "+966500000001",
+    "edf0698c-0964-4709-b005-1c95cfb566de": "+966555987654",
+    "a6fce571-66d9-4866-afde-6dc499507e1a": "+96690980000",
+    "84fe6675-cbd6-476d-8967-586fd8e75d8e": "+962791234567",
+    "c686a3a9-b90c-42df-b1a0-9b1feb6885e4": "+966500000001",
+    "9110f1cb-b31b-40bf-bd17-e38689257cc4": "+962791234567"
+  },
+  "otps": {}
+}

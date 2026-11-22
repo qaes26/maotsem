@@ -1,0 +1,23 @@
+{
+  "theme": {
+    "primaryColor": "#1a1a2e",
+    "secondaryColor": "#16213e",
+    "accentColor": "#e2b714",
+    "successColor": "#00b894",
+    "dangerColor": "#e74c3c",
+    "warningColor": "#f39c12",
+    "surfaceColor": "#0f3460",
+    "textColor": "#ffffff",
+    "borderRadius": "12",
+    "fontFamily": "Cairo"
+  },
+  "lifelines": {
+    "enabled": ["two-answers", "pit", "double", "call-friend", "swap", "bomb"],
+    "maxPerGame": 3,
+    "bombBonusChance": 0.5
+  },
+  "game": {
+    "questionTimer": 30,
+    "pointValues": [200, 400, 600]
+  }
+}
