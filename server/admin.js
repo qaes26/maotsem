@@ -60,67 +60,133 @@ router.post('/login', (req, res) => {
 });
 
 // --- Theme ---
-router.get('/theme', requireAdmin, (req, res) => {
+router.get('/theme', async (req, res) => {
+  try {
+    const supaTheme = await db.getSettings('theme');
+    if (supaTheme) {
+      return res.json({ success: true, theme: supaTheme });
+    }
+  } catch (err) {
+    console.warn('[Admin] getTheme Supabase error:', err.message);
+  }
   const settings = loadSettings();
   res.json({ success: true, theme: settings.theme });
 });
 
-router.put('/theme', requireAdmin, (req, res) => {
-  const settings = loadSettings();
-  settings.theme = { ...settings.theme, ...req.body };
-  saveSettings(settings);
-  res.json({ success: true, theme: settings.theme, message: 'تم تحديث السمة' });
+router.put('/theme', requireAdmin, async (req, res) => {
+  try {
+    const settings = loadSettings();
+    const updatedTheme = { ...settings.theme, ...(req.body.theme || req.body) };
+    settings.theme = updatedTheme;
+    saveSettings(settings);
+
+    // Save to Supabase game_settings
+    await db.saveSettings('theme', updatedTheme);
+
+    res.json({ success: true, theme: updatedTheme, message: 'تم تحديث السمة وحفظها بنجاح' });
+  } catch (err) {
+    console.error('[Admin] updateTheme error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // --- Categories ---
-router.get('/categories', requireAdmin, (req, res) => {
-  // Built-in categories from questions data
-  const allQ = getQuestions();
-  const catMap = new Map();
-  for (const q of allQ) {
-    if (!catMap.has(q.category)) {
-      catMap.set(q.category, { id: q.category, name: q.categoryName || q.category, subcategories: new Set(), questionCount: 0 });
+router.get('/categories', requireAdmin, async (req, res) => {
+  try {
+    const categories = await db.getAllCategoriesAdmin();
+    if (categories && categories.length > 0) {
+      return res.json({ success: true, categories });
     }
-    const cat = catMap.get(q.category);
-    if (q.subcategory) cat.subcategories.add(q.subcategory);
-    cat.questionCount++;
+
+    // Fallback to questions data
+    const allQ = getQuestions();
+    const catMap = new Map();
+    for (const q of allQ) {
+      if (!catMap.has(q.category)) {
+        catMap.set(q.category, {
+          id: q.category,
+          slug: q.category,
+          name: q.categoryName || q.category,
+          name_ar: q.categoryName || q.category,
+          icon: '🎯',
+          color: '#e2b714',
+          subcategories: new Set(),
+          questionCount: 0,
+          is_active: true,
+          is_custom: false,
+        });
+      }
+      const cat = catMap.get(q.category);
+      if (q.subcategory) cat.subcategories.add(q.subcategory);
+      cat.questionCount++;
+    }
+
+    const fallbackList = Array.from(catMap.values()).map(c => ({
+      ...c,
+      subcategories: Array.from(c.subcategories),
+    }));
+
+    // Add custom categories
+    for (const [id, cat] of customCategories) {
+      fallbackList.push({ ...cat, id, is_custom: true });
+    }
+
+    res.json({ success: true, categories: fallbackList });
+  } catch (err) {
+    console.error('[Admin] getCategories error:', err);
+    res.status(500).json({ success: false, message: 'خطأ في جلب الفئات' });
   }
+});
 
-  const categories = Array.from(catMap.values()).map(c => ({
-    ...c,
-    subcategories: Array.from(c.subcategories),
-    isCustom: false,
-  }));
+router.post('/categories', requireAdmin, async (req, res) => {
+  try {
+    const { name, name_ar, nameAr, slug, icon, color, sort_order, is_active } = req.body;
+    const catData = {
+      name: name || name_ar || nameAr,
+      name_ar: name_ar || nameAr || name,
+      slug,
+      icon: icon || '🎯',
+      color: color || '#e2b714',
+      sort_order: sort_order ?? 0,
+      is_active: is_active !== false,
+    };
 
-  // Add custom categories
-  for (const [id, cat] of customCategories) {
-    categories.push({ ...cat, id, isCustom: true });
+    const newCat = await db.addCategory(catData);
+
+    // Keep local cache
+    customCategories.set(newCat.id, newCat);
+
+    res.json({ success: true, category: newCat, message: 'تم إضافة القسم بنجاح' });
+  } catch (err) {
+    console.error('[Admin] addCategory error:', err);
+    res.status(500).json({ success: false, message: err.message || 'فشل إضافة القسم' });
   }
-
-  res.json({ success: true, categories });
 });
 
-router.post('/categories', requireAdmin, (req, res) => {
-  const { name, nameAr, subcategories } = req.body;
-  const id = uuidv4();
-  customCategories.set(id, { name, nameAr: nameAr || name, subcategories: subcategories || [], questionCount: 0 });
-  res.json({ success: true, id, message: 'تم إضافة الفئة' });
+router.put('/categories/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await db.updateCategory(id, req.body);
+    if (customCategories.has(id)) {
+      customCategories.set(id, { ...customCategories.get(id), ...req.body });
+    }
+    res.json({ success: true, category: updated, message: 'تم تحديث القسم بنجاح' });
+  } catch (err) {
+    console.error('[Admin] updateCategory error:', err);
+    res.status(500).json({ success: false, message: err.message || 'فشل تحديث القسم' });
+  }
 });
 
-router.put('/categories/:id', requireAdmin, (req, res) => {
-  const { id } = req.params;
-  const cat = customCategories.get(id);
-  if (!cat) return res.status(404).json({ success: false, message: 'الفئة غير موجودة' });
-  Object.assign(cat, req.body);
-  customCategories.set(id, cat);
-  res.json({ success: true, category: cat, message: 'تم تحديث الفئة' });
-});
-
-router.delete('/categories/:id', requireAdmin, (req, res) => {
-  const { id } = req.params;
-  if (!customCategories.has(id)) return res.status(404).json({ success: false, message: 'الفئة غير موجودة' });
-  customCategories.delete(id);
-  res.json({ success: true, message: 'تم حذف الفئة' });
+router.delete('/categories/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.deleteCategory(id);
+    customCategories.delete(id);
+    res.json({ success: true, message: 'تم حذف القسم بنجاح من قاعدة البيانات' });
+  } catch (err) {
+    console.error('[Admin] deleteCategory error:', err);
+    res.status(500).json({ success: false, message: err.message || 'فشل حذف القسم' });
+  }
 });
 
 // --- Questions ---

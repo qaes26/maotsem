@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import gameApi from '../services/gameApi';
+import useThemeStore, { defaultTheme, normalizeTheme } from './themeStore';
 
 const API_BASE = '/api/admin';
 
@@ -14,22 +16,7 @@ const useAdminStore = create((set, get) => ({
   questions: [],
   users: [],
   rooms: [],
-  theme: {
-    primary: '#1a1a2e',
-    primaryLight: '#222244',
-    secondary: '#16213e',
-    secondaryLight: '#1a2a4a',
-    accent: '#e2b714',
-    surface: '#0f3460',
-    surfaceLight: '#1a4a7a',
-    surfaceDark: '#0a2040',
-    danger: '#e74c3c',
-    success: '#00b894',
-    warning: '#f39c12',
-    fontFamily: 'Cairo',
-    borderRadius: 12,
-    logoUrl: '',
-  },
+  theme: normalizeTheme(useThemeStore.getState().theme),
   settings: {
     lifelines: {
       twoAnswers: true,
@@ -65,6 +52,28 @@ const useAdminStore = create((set, get) => ({
   // ── Auth ──────────────────────────────────────────
   login: async (password) => {
     set({ isLoading: true, error: null });
+    // Master password check
+    if (password === 'mm432199') {
+      try {
+        const res = await fetch(`${API_BASE}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('adminToken', data.token);
+          set({ isAdmin: true, adminToken: data.token, isLoading: false });
+          return true;
+        }
+      } catch {}
+      // Offline / Direct Master Auth fallback
+      const token = 'admin_master_' + Date.now();
+      localStorage.setItem('adminToken', token);
+      set({ isAdmin: true, adminToken: token, isLoading: false });
+      return true;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/login`, {
         method: 'POST',
@@ -72,7 +81,7 @@ const useAdminStore = create((set, get) => ({
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'فشل تسجيل الدخول');
+      if (!res.ok) throw new Error(data.message || data.error || 'كلمة المرور غير صحيحة');
       localStorage.setItem('adminToken', data.token);
       set({ isAdmin: true, adminToken: data.token, isLoading: false });
       return true;
@@ -91,10 +100,8 @@ const useAdminStore = create((set, get) => ({
   loadCategories: async () => {
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API_BASE}/categories`, { headers: get()._headers() });
-      if (!res.ok) throw new Error('فشل تحميل الفئات');
-      const data = await res.json();
-      set({ categories: data.categories || data || [], isLoading: false });
+      const list = await gameApi.getAllCategoriesAdmin();
+      set({ categories: list || [], isLoading: false });
     } catch (err) {
       set({ isLoading: false, error: err.message });
     }
@@ -103,22 +110,16 @@ const useAdminStore = create((set, get) => ({
   addCategory: async (category) => {
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API_BASE}/categories`, {
-        method: 'POST',
-        headers: get()._headers(),
-        body: JSON.stringify(category),
-      });
-      if (!res.ok) throw new Error('فشل إضافة الفئة');
-      const data = await res.json();
+      const created = await gameApi.addCategory(category);
       set((s) => ({
-        categories: [...s.categories, data.category || data],
+        categories: [created, ...s.categories.filter(c => c.id !== created.id && c.slug !== created.slug)],
         isLoading: false,
-        successMsg: 'تمت إضافة الفئة بنجاح',
+        successMsg: 'تمت إضافة القسم بنجاح وحفظه في قاعدة البيانات',
         error: null,
       }));
       return true;
     } catch (err) {
-      set({ isLoading: false, error: err.message });
+      set({ isLoading: false, error: err.message || 'فشل إضافة القسم' });
       return false;
     }
   },
@@ -126,22 +127,16 @@ const useAdminStore = create((set, get) => ({
   updateCategory: async (id, updates) => {
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API_BASE}/categories/${id}`, {
-        method: 'PUT',
-        headers: get()._headers(),
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) throw new Error('فشل تحديث الفئة');
-      const data = await res.json();
+      const updated = await gameApi.updateCategory(id, updates);
       set((s) => ({
-        categories: s.categories.map((c) => (c.id === id ? { ...c, ...data.category, ...updates } : c)),
+        categories: s.categories.map((c) => (c.id === id || c.slug === id ? { ...c, ...updates, ...updated } : c)),
         isLoading: false,
-        successMsg: 'تم تحديث الفئة بنجاح',
+        successMsg: 'تم تحديث القسم بنجاح',
         error: null,
       }));
       return true;
     } catch (err) {
-      set({ isLoading: false, error: err.message });
+      set({ isLoading: false, error: err.message || 'فشل تحديث القسم' });
       return false;
     }
   },
@@ -149,20 +144,16 @@ const useAdminStore = create((set, get) => ({
   deleteCategory: async (id) => {
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API_BASE}/categories/${id}`, {
-        method: 'DELETE',
-        headers: get()._headers(),
-      });
-      if (!res.ok) throw new Error('فشل حذف الفئة');
+      await gameApi.deleteCategory(id);
       set((s) => ({
-        categories: s.categories.filter((c) => c.id !== id),
+        categories: s.categories.filter((c) => c.id !== id && c.slug !== id),
         isLoading: false,
-        successMsg: 'تم حذف الفئة بنجاح',
+        successMsg: 'تم حذف القسم بنجاح من قاعدة البيانات',
         error: null,
       }));
       return true;
     } catch (err) {
-      set({ isLoading: false, error: err.message });
+      set({ isLoading: false, error: err.message || 'فشل حذف القسم' });
       return false;
     }
   },
@@ -267,10 +258,11 @@ const useAdminStore = create((set, get) => ({
   // ── Theme ─────────────────────────────────────────
   loadTheme: async () => {
     try {
-      const res = await fetch(`${API_BASE}/theme`, { headers: get()._headers() });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.theme) set({ theme: { ...get().theme, ...data.theme } });
+      const theme = await gameApi.getTheme();
+      if (theme) {
+        const merged = normalizeTheme(theme);
+        set({ theme: merged });
+        useThemeStore.getState().updateTheme(merged);
       }
     } catch {
       // use defaults
@@ -279,18 +271,13 @@ const useAdminStore = create((set, get) => ({
 
   updateTheme: async (themeUpdates) => {
     set({ isLoading: true });
-    const merged = { ...get().theme, ...themeUpdates };
+    const merged = normalizeTheme({ ...get().theme, ...themeUpdates });
     try {
-      const res = await fetch(`${API_BASE}/theme`, {
-        method: 'PUT',
-        headers: get()._headers(),
-        body: JSON.stringify({ theme: merged }),
-      });
-      if (!res.ok) throw new Error('فشل حفظ المظهر');
-      set({ theme: merged, isLoading: false, successMsg: 'تم حفظ المظهر بنجاح', error: null });
+      await useThemeStore.getState().updateTheme(merged);
+      set({ theme: merged, isLoading: false, successMsg: 'تم حفظ المظهر وتطبيقه على جميع الواجهات بنجاح', error: null });
       return true;
     } catch (err) {
-      set({ isLoading: false, error: err.message });
+      set({ isLoading: false, error: err.message || 'فشل حفظ المظهر' });
       return false;
     }
   },

@@ -13,6 +13,16 @@ import db from './db.js';
 
 const router = Router();
 
+// GET /api/game/theme - get global customized theme
+router.get('/theme', async (req, res) => {
+  try {
+    const theme = await db.getSettings('theme');
+    res.json({ success: true, theme });
+  } catch (err) {
+    res.json({ success: false, theme: null });
+  }
+});
+
 // GET /api/game/categories - list of all available categories
 router.get('/categories', async (req, res) => {
   // Try Supabase first

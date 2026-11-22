@@ -267,6 +267,182 @@ export const gameApi = {
   // 8. Mafia Roles
   getMafiaRoles() {
     return getLocalMafiaRoles();
+  },
+
+  // 9. Admin Category CRUD (Direct Supabase fallback for Netlify)
+  async getAllCategoriesAdmin() {
+    // Try backend API first
+    try {
+      const res = await fetch('/api/admin/categories', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.categories) return data.categories;
+      }
+    } catch {}
+
+    // Direct Supabase query
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data: cats, error } = await supabase.from('categories').select('*').order('sort_order');
+        if (!error && cats) {
+          const { data: qList } = await supabase.from('questions').select('category_slug');
+          const countMap = {};
+          if (qList) {
+            for (const q of qList) {
+              countMap[q.category_slug] = (countMap[q.category_slug] || 0) + 1;
+            }
+          }
+          return cats.map(c => ({
+            id: c.id,
+            slug: c.slug,
+            name: c.name,
+            name_ar: c.name_ar || c.name,
+            icon: c.icon || '🎯',
+            color: c.color || '#e2b714',
+            sort_order: c.sort_order ?? 0,
+            is_active: c.is_active ?? true,
+            is_custom: c.is_custom ?? false,
+            questionCount: countMap[c.slug] || 0,
+          }));
+        }
+      } catch (err) {
+        console.warn('[gameApi] Direct Supabase categories error:', err);
+      }
+    }
+
+    return [];
+  },
+
+  async addCategory(cat) {
+    // Try backend API first
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(cat)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.category || data;
+      }
+    } catch {}
+
+    // Direct Supabase
+    if (isSupabaseConfigured() && supabase) {
+      const rawSlug = (cat.slug || cat.name || cat.name_ar || '')
+        .toString().trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
+      const slug = rawSlug || `cat-${Date.now().toString(36)}`;
+      const row = {
+        slug,
+        name: cat.name || cat.name_ar || slug,
+        name_ar: cat.name_ar || cat.name || slug,
+        icon: cat.icon || '🎯',
+        color: cat.color || '#e2b714',
+        sort_order: Number(cat.sort_order) || 0,
+        is_active: cat.is_active !== false,
+        is_custom: true,
+      };
+      const { data, error } = await supabase.from('categories').insert([row]).select().single();
+      if (!error && data) return { ...data, questionCount: 0 };
+      if (error) throw new Error(error.message);
+    }
+    throw new Error('فشل إضافة القسم');
+  },
+
+  async updateCategory(idOrSlug, updates) {
+    try {
+      const res = await fetch(`/api/admin/categories/${idOrSlug}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.category || data;
+      }
+    } catch {}
+
+    if (isSupabaseConfigured() && supabase) {
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(idOrSlug);
+      let query = supabase.from('categories').update(updates);
+      if (isUuid) query = query.eq('id', idOrSlug);
+      else query = query.eq('slug', idOrSlug);
+      const { data, error } = await query.select().single();
+      if (!error && data) return data;
+      if (error) throw new Error(error.message);
+    }
+    throw new Error('فشل تحديث القسم');
+  },
+
+  async deleteCategory(idOrSlug) {
+    try {
+      const res = await fetch(`/api/admin/categories/${idOrSlug}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      if (res.ok) return true;
+    } catch {}
+
+    if (isSupabaseConfigured() && supabase) {
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(idOrSlug);
+      let query = supabase.from('categories').delete();
+      if (isUuid) query = query.eq('id', idOrSlug);
+      else query = query.eq('slug', idOrSlug);
+      const { error } = await query;
+      if (!error) return true;
+      if (error) throw new Error(error.message);
+    }
+    return true;
+  },
+
+  // 10. Theme Management
+  async getTheme() {
+    try {
+      const res = await fetch('/api/game/theme');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.theme) return data.theme;
+      }
+    } catch {}
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data, error } = await supabase.from('game_settings').select('value').eq('key', 'theme').single();
+        if (!error && data?.value) return data.value;
+      } catch {}
+    }
+    return null;
+  },
+
+  async saveTheme(theme) {
+    try {
+      await fetch('/api/admin/theme', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify({ theme })
+      });
+    } catch {}
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.from('game_settings').upsert({
+          key: 'theme',
+          value: theme,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+      } catch {}
+    }
   }
 };
 

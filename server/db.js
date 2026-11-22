@@ -181,6 +181,144 @@ class Database {
   setOtp(phone, otp) { localDb.setOtp(phone, otp); }
   verifyOtp(phone, otp) { return localDb.verifyOtp(phone, otp); }
 
+  // ---------- Categories Admin & Management ----------
+  async getAllCategoriesAdmin() {
+    if (!this.useSupabase) {
+      return this.getCategories() || [];
+    }
+
+    try {
+      const { data: cats, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (error || !cats) {
+        console.error('[DB] getAllCategoriesAdmin error:', error?.message);
+        return [];
+      }
+
+      // Fetch questions count for each category
+      const { data: qList } = await supabase
+        .from('questions')
+        .select('category_slug');
+
+      const countMap = {};
+      if (qList) {
+        for (const q of qList) {
+          countMap[q.category_slug] = (countMap[q.category_slug] || 0) + 1;
+        }
+      }
+
+      return cats.map(c => ({
+        id: c.id,
+        slug: c.slug,
+        name: c.name,
+        name_ar: c.name_ar || c.name,
+        icon: c.icon || '🎯',
+        color: c.color || '#e2b714',
+        parent_slug: c.parent_slug,
+        sort_order: c.sort_order ?? 0,
+        is_active: c.is_active ?? true,
+        is_custom: c.is_custom ?? false,
+        questionCount: countMap[c.slug] || 0,
+      }));
+    } catch (err) {
+      console.error('[DB] getAllCategoriesAdmin error:', err.message);
+      return [];
+    }
+  }
+
+  async addCategory(cat) {
+    const rawSlug = (cat.slug || cat.name || cat.name_ar || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-_]/g, '');
+
+    const slug = rawSlug || `cat-${Date.now().toString(36)}`;
+
+    const row = {
+      slug,
+      name: cat.name || cat.name_ar || slug,
+      name_ar: cat.name_ar || cat.name || slug,
+      icon: cat.icon || '🎯',
+      color: cat.color || '#e2b714',
+      parent_slug: cat.parent_slug || null,
+      sort_order: Number(cat.sort_order) || 0,
+      is_active: cat.is_active !== false,
+      is_custom: true,
+    };
+
+    if (!this.useSupabase) {
+      return { id: uuidv4(), ...row, questionCount: 0 };
+    }
+
+    const { data, error } = await supabase
+      .from('categories')
+      .insert([row])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[DB] addCategory error:', error.message);
+      throw new Error(error.message);
+    }
+
+    return { ...data, questionCount: 0 };
+  }
+
+  async updateCategory(idOrSlug, updates) {
+    const updateData = {};
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.name_ar !== undefined) updateData.name_ar = updates.name_ar;
+    if (updates.icon !== undefined) updateData.icon = updates.icon;
+    if (updates.color !== undefined) updateData.color = updates.color;
+    if (updates.is_active !== undefined) updateData.is_active = updates.is_active;
+    if (updates.sort_order !== undefined) updateData.sort_order = Number(updates.sort_order);
+    if (updates.parent_slug !== undefined) updateData.parent_slug = updates.parent_slug;
+
+    if (!this.useSupabase) {
+      return { id: idOrSlug, ...updates };
+    }
+
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(idOrSlug);
+    let query = supabase.from('categories').update(updateData);
+    if (isUuid) {
+      query = query.eq('id', idOrSlug);
+    } else {
+      query = query.eq('slug', idOrSlug);
+    }
+
+    const { data, error } = await query.select().single();
+    if (error) {
+      console.error('[DB] updateCategory error:', error.message);
+      throw new Error(error.message);
+    }
+
+    return data;
+  }
+
+  async deleteCategory(idOrSlug) {
+    if (!this.useSupabase) return true;
+
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(idOrSlug);
+    let query = supabase.from('categories').delete();
+    if (isUuid) {
+      query = query.eq('id', idOrSlug);
+    } else {
+      query = query.eq('slug', idOrSlug);
+    }
+
+    const { error } = await query;
+    if (error) {
+      console.error('[DB] deleteCategory error:', error.message);
+      throw new Error(error.message);
+    }
+    return true;
+  }
+
   // ---------- Game Content (Supabase reads) ----------
   async getCategories() {
     if (!this.useSupabase) return null; // Fallback to questions.js
