@@ -106,7 +106,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-accent golden-glow mb-3 shadow-xl">
             <FaGamepad className="text-4xl text-[var(--color-primary)]" />
           </div>
-          <h1 className="text-3xl font-black text-white mb-1.5 tracking-wide">لعبة حخلص عليك</h1>
+          <h1 className="text-3xl font-black text-white mb-1.5 tracking-wide">لعبة هخلص عليك</h1>
           <p className="text-white/60 text-xs sm:text-sm">معركة العقول الكبرى والتحديات الرياضية والثقافية</p>
         </motion.div>
 
@@ -128,18 +128,18 @@ export default function LoginPage() {
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Phone Input */}
+            {/* Phone or Email Input */}
             <div>
               <label className="text-xs font-bold text-gray-300 block mb-1.5 flex items-center gap-1.5">
                 <FaPhoneAlt className="text-accent text-xs" />
-                <span>رقم الهاتف *</span>
+                <span>رقم الهاتف أو الجيميل / البريد الإلكتروني *</span>
               </label>
               <div className="relative">
                 <input
-                  type="tel"
+                  type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="مثال: 0791234567 أو 0501234567"
+                  placeholder="مثال: 0791234567 أو example@gmail.com"
                   dir="ltr"
                   className="w-full bg-surface border border-surface-light rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition text-left text-sm font-mono tracking-wider"
                   required

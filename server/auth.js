@@ -29,12 +29,21 @@ router.post('/login', async (req, res) => {
     let { phone, nickname, avatar } = req.body;
 
     if (!phone) {
-      return res.status(400).json({ success: false, message: 'يرجى إدخال رقم الهاتف' });
+      return res.status(400).json({ success: false, message: 'يرجى إدخال رقم الهاتف أو البريد الإلكتروني' });
     }
 
-    const cleanPhone = phone.toString().trim().replace(/[^\d+]/g, '');
-    if (cleanPhone.length < 6) {
-      return res.status(400).json({ success: false, message: 'رقم الهاتف قصير جداً وغير صالح (6 أرقام على الأقل)' });
+    let cleanPhone = phone.toString().trim();
+    const isEmail = cleanPhone.includes('@');
+    if (isEmail) {
+      cleanPhone = cleanPhone.toLowerCase();
+      if (!cleanPhone.includes('.') || cleanPhone.length < 5) {
+        return res.status(400).json({ success: false, message: 'البريد الإلكتروني غير صالح' });
+      }
+    } else {
+      cleanPhone = cleanPhone.replace(/[^\d+]/g, '');
+      if (cleanPhone.length < 6) {
+        return res.status(400).json({ success: false, message: 'رقم الهاتف قصير جداً وغير صالح (6 أرقام على الأقل)' });
+      }
     }
 
     const cleanNickname = (nickname || '').toString().trim();

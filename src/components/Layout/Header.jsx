@@ -58,7 +58,7 @@ export default function Header() {
           </motion.div>
           <div className="flex flex-col">
             <span className="text-lg font-black text-white group-hover:text-amber-400 transition-colors leading-tight">
-              حخلص عليك
+              هخلص عليك
             </span>
             <span className="text-[10px] text-amber-400/80 font-medium">المنصة التنافسية الكبرى</span>
           </div>
@@ -215,14 +215,6 @@ export default function Header() {
               تسجيل الدخول
             </Link>
           )}
-
-          <Link
-            to="/admin"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-amber-400 hover:bg-white/5 transition-all border border-transparent hover:border-white/10"
-            title="لوحة الإدارة (الرمز mm432199)"
-          >
-            <FaLock className="text-xs" />
-          </Link>
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -260,7 +252,7 @@ export default function Header() {
                 <div className="flex items-center gap-2.5">
                   <FaTrophy className="text-amber-400" />
                   <div>
-                    <div className="text-sm font-bold text-amber-300">بطولة حخلص عليك الكبرى 🏆</div>
+                    <div className="text-sm font-bold text-amber-300">بطولة هخلص عليك الكبرى 🏆</div>
                     <div className="text-[11px] text-white/60">5 جولات متكاملة وتتويج بطل الفرق</div>
                   </div>
                 </div>
@@ -311,17 +303,9 @@ export default function Header() {
                     onClick={() => setMenuOpen(false)}
                     className="p-3 text-center rounded-xl bg-amber-500 text-slate-950 font-bold text-xs"
                   >
-                    تسجيل الدخول بحساب Google
+                    تسجيل الدخول
                   </Link>
                 )}
-                <Link
-                  to="/admin"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-white/40 hover:text-amber-400 text-xs"
-                >
-                  <FaLock />
-                  <span>لوحة التحكم والإدارة (Password: mm432199)</span>
-                </Link>
               </div>
             </div>
           </motion.div>

@@ -66,7 +66,7 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`\n🎮 حخلص عليك Server running on port ${PORT}`);
+  console.log(`\n🎮 هخلص عليك Server running on port ${PORT}`);
   console.log(`   API: http://localhost:${PORT}/api`);
   console.log(`   Health: http://localhost:${PORT}/api/health\n`);
 });

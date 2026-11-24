@@ -1,5 +1,5 @@
 // ============================================
-// 🎮 Client-Side Unified Game API for حخلص عليك
+// 🎮 Client-Side Unified Game API for هخلص عليك
 // Works both locally and on Netlify (direct Supabase queries)
 // ============================================
 import { supabase, isSupabaseConfigured } from '../config/supabase';

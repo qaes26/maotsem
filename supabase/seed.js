@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ============================================
-// 🎮 حخلص عليك (Seen Jeem) - Supabase Seed Script
+// 🎮 هخلص عليك (Seen Jeem) - Supabase Seed Script
 // Seeds all game content from local questions.js into Supabase tables
 // Run: node supabase/seed.js
 // ============================================
@@ -242,7 +242,7 @@ async function seedLineups() {
 // ==========================================
 async function main() {
   console.log('🎮 ═══════════════════════════════════════');
-  console.log('   حخلص عليك - Supabase Database Seeder');
+  console.log('   هخلص عليك - Supabase Database Seeder');
   console.log('═══════════════════════════════════════');
   console.log(`\n🔗 Supabase URL: ${supabaseUrl}`);
   console.log('🔑 Using service role key\n');

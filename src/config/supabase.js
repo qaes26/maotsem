@@ -1,5 +1,5 @@
 // ============================================
-// 🎮 Supabase Configuration for حخلص عليك
+// 🎮 Supabase Configuration for هخلص عليك
 // Shared client for both frontend and backend
 // ============================================
 import { createClient } from '@supabase/supabase-js';

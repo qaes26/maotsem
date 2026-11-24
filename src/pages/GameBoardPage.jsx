@@ -17,6 +17,7 @@ import {
   FaChevronDown,
   FaClock,
   FaExclamationCircle,
+  FaEye,
 } from 'react-icons/fa';
 
 import GameSetupPage from './GameSetupPage';
@@ -56,20 +57,16 @@ export default function GameBoardPage() {
   // Local game board state
   const [boardQuestions, setBoardQuestions] = useState([]);
   const [activeQuestion, setActiveQuestion] = useState(null);
-  const [activeQuestionCoords, setActiveQuestionCoords] = useState(null); // { catIdx, ptIdx }
-  const [answeredIds, setAnsweredIds] = useState(new Set());
+  const [activeQuestionCoords, setActiveQuestionCoords] = useState(null); // { cIdx, qIdx }
+  const [answeredSlots, setAnsweredSlots] = useState(new Set()); // Strictly tracks by slot coordinate 'cIdx-qIdx'
+  const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
 
   // In-question states
-  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(null);
-  const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
-  const [isAnswerCorrect, setIsAnswerCorrect] = useState(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
 
   // Active lifeline in the current turn
   const [currentLifeline, setCurrentLifeline] = useState(null); // 'two-answers' | 'pit' | 'double' | 'call-friend' | 'bomb'
-  const [twoAnswerAttempts, setTwoAnswerAttempts] = useState(0);
-  const [firstWrongIndex, setFirstWrongIndex] = useState(null);
   const [callFriendActive, setCallFriendActive] = useState(false);
   const [callFriendTimer, setCallFriendTimer] = useState(30);
   const [bombResult, setBombResult] = useState(null); // { outcome: 'bonus'|'trap', points: 400 }
@@ -81,7 +78,7 @@ export default function GameBoardPage() {
   // Teams config
   const [teamNames, setTeamNames] = useState({
     teamA: 'الفريق الأول',
-    teamB: isAIModeParam ? 'روبوت حخلص عليك (AI)' : 'الفريق الثاني',
+    teamB: isAIModeParam ? 'روبوت هخلص عليك (AI)' : 'الفريق الثاني',
   });
 
   // Fetch / initialize board questions
@@ -98,7 +95,7 @@ export default function GameBoardPage() {
   // Build the 6x3 grid
   const buildBoard = (allQuestions, categories) => {
     const pointValues = [200, 400, 600];
-    const grid = categories.map((catId) => {
+    const grid = categories.map((catId, cIdx) => {
       const catQuestions = allQuestions.filter(
         (q) => q.category === catId || q.subcategory === catId
       );
@@ -106,21 +103,51 @@ export default function GameBoardPage() {
       const sample = catQuestions[0];
       const catName = sample ? sample.subcategoryName || sample.categoryName || catId : catId;
 
-      const questions = pointValues.map((points) => {
-        const matches = catQuestions.filter((q) => q.points === points);
-        if (matches.length > 0) {
-          return matches[Math.floor(Math.random() * matches.length)];
+      // Track picked questions for this column to guarantee 3 distinct questions
+      const usedIdsInCol = new Set();
+
+      const questions = pointValues.map((points, qIdx) => {
+        const slotId = `${cIdx}-${qIdx}`;
+
+        // 1. Unused match with exact points
+        let match = catQuestions.find((q) => q.points === points && !usedIdsInCol.has(q.id));
+
+        // 2. Unused match with any points
+        if (!match) {
+          match = catQuestions.find((q) => !usedIdsInCol.has(q.id));
         }
-        if (catQuestions.length > 0) {
-          return { ...catQuestions[Math.floor(Math.random() * catQuestions.length)], points };
+
+        // 3. Fallback: random from catQuestions
+        if (!match && catQuestions.length > 0) {
+          match = catQuestions[Math.floor(Math.random() * catQuestions.length)];
         }
+
+        if (match) {
+          usedIdsInCol.add(match.id);
+          const correctAnswerText =
+            match.correctAnswerText ||
+            (match.options && typeof match.correctAnswer === 'number'
+              ? match.options[match.correctAnswer]
+              : match.answer || 'الإجابة النموذجية');
+
+          return {
+            ...match,
+            slotId,
+            points,
+            id: `${match.id || catId}_${cIdx}_${qIdx}_${points}`,
+            correctAnswerText,
+          };
+        }
+
         return {
-          id: `${catId}-${points}`,
+          id: `${catId}_${cIdx}_${qIdx}_${points}`,
+          slotId,
           question: `سؤال في ${catName} بقيمة ${points} نقطة`,
           options: ['خيار 1', 'خيار 2', 'خيار 3', 'خيار 4'],
           correctAnswer: 0,
+          correctAnswerText: 'الإجابة النموذجية للسؤال',
           points,
-          explanation: 'إجابة السؤال الصحيحة.',
+          explanation: 'إجابة السؤال الصحيحة والمعتمدة.',
         };
       });
 
@@ -148,7 +175,8 @@ export default function GameBoardPage() {
       const availableMoves = [];
       boardQuestions.forEach((col, cIdx) => {
         col.questions.forEach((q, qIdx) => {
-          if (!answeredIds.has(q.id)) {
+          const slotId = q.slotId || `${cIdx}-${qIdx}`;
+          if (!answeredSlots.has(slotId)) {
             availableMoves.push({ q, cIdx, qIdx });
           }
         });
@@ -160,7 +188,7 @@ export default function GameBoardPage() {
         return;
       }
 
-      // Pick question after 2-3 seconds
+      // Pick question after 2 seconds
       const timer = setTimeout(() => {
         const move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
         handleSelectQuestion(move.q, move.cIdx, move.qIdx);
@@ -168,35 +196,31 @@ export default function GameBoardPage() {
 
         // AI Answer execution after 3 seconds
         setTimeout(() => {
+          setIsAnswerRevealed(true);
           let accuracy = 0.65;
           if (aiDifficulty === 'easy') accuracy = 0.4;
           if (aiDifficulty === 'hard') accuracy = 0.85;
 
           const isCorrectChoice = Math.random() < accuracy;
-          const chosenAnswer = isCorrectChoice
-            ? move.q.correctAnswer
-            : (move.q.correctAnswer + 1) % 4;
-
-          handleAnswerSelect(chosenAnswer, move.q);
-        }, 3200);
+          setTimeout(() => {
+            handleAwardPoints(isCorrectChoice ? 'teamB' : null);
+          }, 2000);
+        }, 3000);
       }, 2000);
 
       return () => clearTimeout(timer);
     }
-  }, [currentTurn, activeQuestion, isGameOver, boardQuestions]);
+  }, [currentTurn, activeQuestion, isGameOver, boardQuestions, answeredSlots]);
 
   // Handle Question Click from Board
   const handleSelectQuestion = (q, cIdx, qIdx) => {
-    if (answeredIds.has(q.id) || activeQuestion) return;
+    const slotId = q.slotId || `${cIdx}-${qIdx}`;
+    if (answeredSlots.has(slotId) || activeQuestion) return;
 
     setActiveQuestion(q);
     setActiveQuestionCoords({ cIdx, qIdx });
-    setSelectedAnswerIndex(null);
-    setIsAnswerSubmitted(false);
-    setIsAnswerCorrect(null);
+    setIsAnswerRevealed(false);
     setCurrentLifeline(null);
-    setTwoAnswerAttempts(0);
-    setFirstWrongIndex(null);
     setBombResult(null);
     setQuestionTimeLeft(30);
     setTimerRunning(true);
@@ -204,7 +228,7 @@ export default function GameBoardPage() {
 
   // Handle Lifeline Activation
   const handleUseLifeline = (lifelineId) => {
-    if (currentLifeline || isAnswerSubmitted) return;
+    if (currentLifeline || isAnswerRevealed) return;
 
     const team = currentTurn;
     const teamUsed = usedLifelines[team] || [];
@@ -218,7 +242,6 @@ export default function GameBoardPage() {
       setCallFriendTimer(35);
     } else if (lifelineId === 'bomb') {
       sound.playBomb();
-      // 50% chance +400 bonus or -400 trap
       const isBonus = Math.random() >= 0.5;
       const pts = 400;
       setBombResult({
@@ -232,7 +255,6 @@ export default function GameBoardPage() {
         scores[team] = Math.max(0, scores[team] - pts);
       }
     } else if (lifelineId === 'swap') {
-      // Swap question with alternative
       fetch('/api/game/questions')
         .then((res) => res.json())
         .then((data) => {
@@ -241,77 +263,71 @@ export default function GameBoardPage() {
           );
           if (alternates.length > 0) {
             const newQ = alternates[Math.floor(Math.random() * alternates.length)];
-            setActiveQuestion(newQ);
+            const correctAnswerText =
+              newQ.correctAnswerText ||
+              (newQ.options && typeof newQ.correctAnswer === 'number'
+                ? newQ.options[newQ.correctAnswer]
+                : newQ.answer || 'الإجابة النموذجية');
+            setActiveQuestion({
+              ...newQ,
+              slotId: activeQuestion.slotId,
+              correctAnswerText,
+            });
           }
         });
     }
   };
 
-  // Handle Answer Selection
-  const handleAnswerSelect = (index, questionOverride) => {
-    const q = questionOverride || activeQuestion;
-    if (!q || isAnswerSubmitted) return;
+  // Award Points to Team A, Team B, or None (Referee / Teams Control)
+  const handleAwardPoints = (winnerTeam) => {
+    if (!activeQuestion) return;
 
-    setSelectedAnswerIndex(index);
-
-    // If Two Answers lifeline is active and first attempt
-    if (currentLifeline === 'two-answers' && twoAnswerAttempts === 0 && index !== q.correctAnswer) {
-      setTwoAnswerAttempts(1);
-      setFirstWrongIndex(index);
-      return; // Give second attempt!
-    }
-
-    setTimerRunning(false);
-    setIsAnswerSubmitted(true);
-
-    const isCorrect = index === q.correctAnswer;
-    setIsAnswerCorrect(isCorrect);
-    if (isCorrect) {
-      sound.playCorrect();
-    } else {
-      sound.playWrong();
-    }
-
-    const team = currentTurn;
-    const opponentTeam = team === 'teamA' ? 'teamB' : 'teamA';
-    let earnedPoints = q.points;
-
-    // Apply Double Points
+    let earnedPoints = activeQuestion.points;
     if (currentLifeline === 'double') {
       earnedPoints *= 2;
     }
 
-    if (isCorrect) {
-      // Pit lifeline: gains points AND deducts from opponent
-      if (currentLifeline === 'pit') {
-        scores[team] += earnedPoints;
-        scores[opponentTeam] = Math.max(0, scores[opponentTeam] - earnedPoints);
+    if (winnerTeam === 'teamA') {
+      sound.playCorrect();
+      if (currentLifeline === 'pit' && currentTurn === 'teamA') {
+        scores.teamA += earnedPoints;
+        scores.teamB = Math.max(0, scores.teamB - earnedPoints);
       } else {
-        scores[team] += earnedPoints;
+        scores.teamA += earnedPoints;
+      }
+    } else if (winnerTeam === 'teamB') {
+      sound.playCorrect();
+      if (currentLifeline === 'pit' && currentTurn === 'teamB') {
+        scores.teamB += earnedPoints;
+        scores.teamA = Math.max(0, scores.teamA - earnedPoints);
+      } else {
+        scores.teamB += earnedPoints;
       }
     } else {
-      // Wrong answer
+      sound.playWrong();
       if (currentLifeline === 'pit') {
-        // Pit penalty on failure
-        scores[team] = Math.max(0, scores[team] - Math.round(earnedPoints / 2));
+        scores[currentTurn] = Math.max(0, scores[currentTurn] - Math.round(earnedPoints / 2));
       }
     }
 
-    // Mark as answered on board
-    setAnsweredIds((prev) => new Set([...prev, q.id]));
+    // Mark slot strictly as answered
+    const slotId = activeQuestion.slotId || `${activeQuestionCoords?.cIdx}-${activeQuestionCoords?.qIdx}`;
+    setAnsweredSlots((prev) => {
+      const next = new Set(prev);
+      next.add(slotId);
 
-    // Check if game over (18 questions)
-    if (answeredIds.size + 1 >= 18) {
-      setTimeout(() => {
-        setIsGameOver(true);
-        sound.playFanfare();
-      }, 3500);
-    }
-  };
+      // Check if all 18 questions are answered
+      if (next.size >= 18) {
+        setTimeout(() => {
+          setIsGameOver(true);
+          sound.playFanfare();
+        }, 1500);
+      }
+      return next;
+    });
 
-  // Close question modal and advance turn
-  const handleCloseQuestionModal = () => {
     setActiveQuestion(null);
+    setIsAnswerRevealed(false);
     nextTurn();
   };
 
@@ -337,9 +353,9 @@ export default function GameBoardPage() {
         </button>
 
         <div className="text-center">
-          <h1 className="text-xl sm:text-2xl font-black text-white">لوحة حخلص عليك (6 فئات)</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-white">لوحة هخلص عليك (6 فئات)</h1>
           <div className="text-xs text-white/50">
-            تمت الإجابة: {answeredIds.size} / 18 سؤالاً
+            تمت الإجابة: {answeredSlots.size} / 18 سؤالاً
           </div>
         </div>
 
@@ -524,12 +540,13 @@ export default function GameBoardPage() {
               {/* Point Buttons (200, 400, 600) */}
               <div className="space-y-2">
                 {col.questions.map((q, qIdx) => {
-                  const isAnswered = answeredIds.has(q.id);
-                  const isCurrentActive = activeQuestion?.id === q.id;
+                  const slotId = q.slotId || `${cIdx}-${qIdx}`;
+                  const isAnswered = answeredSlots.has(slotId);
+                  const isCurrentActive = activeQuestion?.slotId === slotId;
 
                   return (
                     <motion.button
-                      key={q.id || qIdx}
+                      key={slotId}
                       whileHover={!isAnswered ? { scale: 1.04 } : {}}
                       whileTap={!isAnswered ? { scale: 0.96 } : {}}
                       disabled={isAnswered || !!activeQuestion || (currentTurn === 'teamB' && gameMode === 'ai')}
@@ -552,7 +569,7 @@ export default function GameBoardPage() {
         </div>
       </div>
 
-      {/* Active Question Modal */}
+      {/* Active Question Modal (بدون خيارات متعددة + زر كشف الإجابة) */}
       <AnimatePresence>
         {activeQuestion && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -578,7 +595,7 @@ export default function GameBoardPage() {
                   <div className="px-3 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 text-xs font-bold flex items-center gap-1.5 animate-pulse">
                     <span>خط النجاة مفعّل:</span>
                     <span>
-                      {currentLifeline === 'two-answers' && '🎯 جوابين (محاولتان)'}
+                      {currentLifeline === 'two-answers' && '🎯 جوابين'}
                       {currentLifeline === 'pit' && '⬇️ الحفرة (+لك و -للخصم)'}
                       {currentLifeline === 'double' && '✖️2 مضاعفة النقاط'}
                       {currentLifeline === 'call-friend' && '📞 اتصال بصديق'}
@@ -625,89 +642,91 @@ export default function GameBoardPage() {
                 </div>
               )}
 
-              {/* Question Text */}
-              <div className="text-center py-4">
+              {/* Question Text Alone (السؤال موجود وحيد بدون خيارات متعددة) */}
+              <div className="text-center py-6 px-4 bg-white/5 rounded-3xl border border-white/10 shadow-inner my-2">
+                <span className="text-xs font-bold text-[var(--color-accent)] block mb-2">السؤال المطلوب:</span>
                 <h2 className="text-xl sm:text-2xl font-black text-white leading-relaxed">
                   {activeQuestion.question}
                 </h2>
               </div>
 
-              {/* 4 Answer Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {activeQuestion.options.map((option, idx) => {
-                  const isSelected = selectedAnswerIndex === idx;
-                  const isCorrect = idx === activeQuestion.correctAnswer;
-                  const isWrongFirstAttempt = firstWrongIndex === idx;
-
-                  let btnStyle = 'bg-white/5 border-white/10 hover:border-white/30 text-white';
-
-                  if (isAnswerSubmitted) {
-                    if (isCorrect) {
-                      btnStyle = 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-black shadow-lg shadow-emerald-500/20';
-                    } else if (isSelected) {
-                      btnStyle = 'bg-red-500/20 border-red-500 text-red-300';
-                    }
-                  } else if (isWrongFirstAttempt) {
-                    btnStyle = 'bg-red-500/10 border-red-500/30 text-red-400 line-through opacity-50 cursor-not-allowed';
-                  }
-
-                  return (
-                    <button
-                      key={idx}
-                      disabled={isAnswerSubmitted || isWrongFirstAttempt || (currentTurn === 'teamB' && gameMode === 'ai')}
-                      onClick={() => handleAnswerSelect(idx)}
-                      className={`p-4 rounded-2xl border-2 text-right transition-all flex items-center justify-between text-sm sm:text-base font-semibold ${btnStyle}`}
-                    >
-                      <span>{option}</span>
-                      <span className="w-7 h-7 rounded-xl bg-white/10 flex items-center justify-center font-mono text-xs text-white/60">
-                        {['أ', 'ب', 'ج', 'د'][idx]}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Feedback and Explanation */}
-              {isAnswerSubmitted && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4 pt-2"
-                >
-                  <div
-                    className={`p-4 rounded-2xl text-center font-black text-sm flex items-center justify-center gap-2 ${
-                      isAnswerCorrect
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                        : 'bg-red-500/20 text-red-400 border border-red-500/40'
-                    }`}
+              {/* Question Action: Reveal Button or Revealed Answer */}
+              {!isAnswerRevealed ? (
+                <div className="flex flex-col items-center justify-center py-6 gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      setIsAnswerRevealed(true);
+                      sound.playWhistle();
+                    }}
+                    className="px-8 py-4 rounded-2xl font-black text-base sm:text-lg bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 shadow-2xl shadow-amber-500/30 flex items-center gap-3 border-2 border-amber-300 transition-all hover:brightness-110"
                   >
-                    {isAnswerCorrect ? (
-                      <>
-                        <FaCheck />
-                        <span>إجابة صحيحة ومتقنة! أحسنتم 🎉</span>
-                      </>
-                    ) : (
-                      <>
-                        <FaTimes />
-                        <span>للأسف إجابة خاطئة! الإجابة الصحيحة موضحة بالأخضر.</span>
-                      </>
-                    )}
+                    <FaEye className="text-xl" />
+                    <span>كشف الإجابة الصحيحة (للحكم والفريقين) 👁️</span>
+                  </motion.button>
+                  <p className="text-xs text-white/50 text-center">
+                    اضغط على الزر لكشف الإجابة الصحيحة فقط بدون خيارات والتحكيم بين الفريقين
+                  </p>
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="space-y-4"
+                >
+                  {/* The Single Correct Answer Card */}
+                  <div className="p-6 rounded-3xl bg-emerald-500/20 border-2 border-emerald-500/60 shadow-xl shadow-emerald-500/10 text-center space-y-2">
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
+                      الإجابة الصحيحة المعتمدة ✓
+                    </span>
+                    <div className="text-2xl sm:text-3xl font-black text-emerald-300">
+                      {activeQuestion.correctAnswerText ||
+                        (activeQuestion.options && typeof activeQuestion.correctAnswer === 'number'
+                          ? activeQuestion.options[activeQuestion.correctAnswer]
+                          : activeQuestion.answer) ||
+                        'الإجابة الصحيحة'}
+                    </div>
                   </div>
 
+                  {/* Optional Explanation */}
                   {activeQuestion.explanation && (
-                    <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-xs text-white/70 text-right leading-relaxed">
-                      <span className="font-bold text-[var(--color-accent)] block mb-1">💡 معلومة حخلص عليك:</span>
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 text-xs text-white/80 text-right leading-relaxed">
+                      <span className="font-bold text-[var(--color-accent)] block mb-1">💡 معلومة هخلص عليك:</span>
                       {activeQuestion.explanation}
                     </div>
                   )}
 
-                  <div className="flex justify-center pt-2">
-                    <button
-                      onClick={handleCloseQuestionModal}
-                      className="px-8 py-3 rounded-2xl font-bold text-sm gradient-accent text-[var(--color-primary)] shadow-xl hover:scale-105 active:scale-95 transition-all"
-                    >
-                      متابعة وانتقال الدور للخصم
-                    </button>
+                  {/* Referee Award Points Section */}
+                  <div className="pt-4 border-t border-white/10 space-y-3">
+                    <div className="text-center text-xs font-bold text-white/60">
+                      ⚖️ قرار الحكم ومنح النقاط:
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <button
+                        onClick={() => handleAwardPoints('teamA')}
+                        className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500 hover:to-amber-600 border border-amber-500/40 text-amber-300 hover:text-black font-black text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2"
+                      >
+                        <FaCheck />
+                        <span>نقطة لـ {teamNames.teamA} (+{currentLifeline === 'double' ? activeQuestion.points * 2 : activeQuestion.points})</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleAwardPoints('teamB')}
+                        className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-cyan-600/30 hover:from-cyan-500 hover:to-cyan-600 border border-cyan-500/40 text-cyan-300 hover:text-black font-black text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2"
+                      >
+                        <FaCheck />
+                        <span>نقطة لـ {teamNames.teamB} (+{currentLifeline === 'double' ? activeQuestion.points * 2 : activeQuestion.points})</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleAwardPoints(null)}
+                        className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 text-white/60 hover:text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2"
+                      >
+                        <FaTimes />
+                        <span>لا أحد / إجابة خاطئة (0)</span>
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}

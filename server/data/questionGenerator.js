@@ -1,4 +1,4 @@
-// Dynamic Question & Challenge Generator for "حخلص عليك"
+// Dynamic Question & Challenge Generator for "هخلص عليك"
 // Continuously generates unique, non-repeating rounds and questions
 
 export function generateMathQuestion() {

@@ -22,11 +22,17 @@ import {
 import useAuthStore from '../stores/authStore';
 import useGameStore from '../stores/gameStore';
 import sound from '../utils/soundEffects';
+import LoginPage from './LoginPage';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
   const setGameMode = useGameStore((s) => s.setGameMode);
+
+  // If not logged in, show the login screen before anything inside the game
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
   const handleStartMode = (mode, route) => {
     sound.playWhistle();
@@ -42,7 +48,7 @@ export default function HomePage() {
   const gameModes = [
     {
       id: 'tournament',
-      title: 'بطولة حخلص عليك الكبرى',
+      title: 'بطولة هخلص عليك الكبرى',
       subtitle: '5 جولات متتالية مع الأفرقة وتتويج البطل',
       description: 'أقوى وضع تنافسي متكامل! يتنافس الفريقان عبر 5 جولات: لوحة الفئات، مزاد الكرة، سكتش الأهداف، التشكيلة، والتمثيل!',
       icon: FaTrophy,
@@ -149,7 +155,7 @@ export default function HomePage() {
     {
       id: 'ai-mode',
       title: 'التحدي ضد الذكاء الاصطناعي',
-      subtitle: 'مواجهة فردية ضد روبوت حخلص عليك',
+      subtitle: 'مواجهة فردية ضد روبوت هخلص عليك',
       description: 'العب بمفردك ضد منافس ذكي بمستويات (سهل، متوسط، صعب). الذكاء الاصطناعي يختار الفئات ويستخدم خطوط النجاة استراتيجياً.',
       icon: FaRobot,
       badge: 'لعب فردي ذكي 🤖',
@@ -199,7 +205,7 @@ export default function HomePage() {
               <span>المنصة رقم #1 للألعاب التفاعلية والمسابقات باللغة العربية</span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">
-              أهلاً بك في <span className="text-[var(--color-accent)]">حخلص عليك</span>
+              أهلاً بك في <span className="text-[var(--color-accent)]">هخلص عليك</span>
             </h1>
             <p className="text-white/70 max-w-xl text-sm sm:text-base leading-relaxed">
               مشروع متكامل ومحتوى متجدد باستمرار: بطولات متعددة الجولات، مزاد كروي، أهداف سكتش، تمثيل شخصيات، وتحدي التشكيلة!

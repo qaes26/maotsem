@@ -1,5 +1,5 @@
 // ============================================
-// 🎮 Unified Auth Store for حخلص عليك
+// 🎮 Unified Auth Store for هخلص عليك
 // Fast & Simple: Phone + Unique Username ("وما يتكرر")
 // + Supabase Persistent Sync & Google OAuth support
 // ============================================
@@ -13,15 +13,17 @@ const useAuthStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  // 1. Fast Login with Phone & Unique Username (الرقم واليوزر نيم وما يتكرر)
+  // 1. Fast Login with Phone or Email & Unique Username (الرقم أو الإيميل واليوزر نيم وما يتكرر)
   loginWithPhoneAndUsername: async ({ phone, nickname, avatar }) => {
     set({ isLoading: true, error: null });
 
-    const cleanPhone = (phone || '').toString().trim().replace(/[^\d+]/g, '');
+    const rawContact = (phone || '').toString().trim();
+    const isEmail = rawContact.includes('@');
+    const cleanPhone = isEmail ? rawContact.toLowerCase() : rawContact.replace(/[^\d+]/g, '');
     const cleanNickname = (nickname || '').toString().trim();
 
-    if (!cleanPhone || cleanPhone.length < 6) {
-      const err = 'يرجى إدخال رقم هاتف صالح (6 أرقام على الأقل)';
+    if (!cleanPhone || (isEmail ? !cleanPhone.includes('.') : cleanPhone.length < 6)) {
+      const err = isEmail ? 'يرجى إدخال بريد إلكتروني صالح' : 'يرجى إدخال رقم هاتف صالح (6 أرقام على الأقل)';
       set({ isLoading: false, error: err });
       return { success: false, message: err };
     }
@@ -245,7 +247,7 @@ const useAuthStore = create((set, get) => ({
       sbUser.user_metadata?.full_name ||
       sbUser.user_metadata?.name ||
       email.split('@')[0] ||
-      'لاعب حخلص عليك';
+      'لاعب هخلص عليك';
     const avatarUrl =
       sbUser.user_metadata?.avatar_url ||
       sbUser.user_metadata?.picture ||

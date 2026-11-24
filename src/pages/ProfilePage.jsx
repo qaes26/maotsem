@@ -23,7 +23,7 @@ export default function ProfilePage() {
   const { user, updateProfile, logout } = useAuthStore();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [nickname, setNickname] = useState(user?.nickname || 'لاعب حخلص عليك');
+  const [nickname, setNickname] = useState(user?.nickname || 'لاعب هخلص عليك');
   const [avatar, setAvatar] = useState(user?.avatar || '🦁');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -119,7 +119,7 @@ export default function ProfilePage() {
               <FaCheckCircle className="text-[var(--color-success)] text-xs ml-1" title="حساب موثق" />
             </div>
 
-            <p className="text-xs text-white/50">عضو نشط في حخلص عليك • حساب محفوظ في قاعدة بيانات Supabase</p>
+            <p className="text-xs text-white/50">عضو نشط في هخلص عليك • حساب محفوظ في قاعدة بيانات Supabase</p>
 
             {savedSuccess && (
               <div className="text-xs text-[var(--color-success)] font-bold pt-1">

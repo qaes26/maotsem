@@ -1,5 +1,5 @@
 // ============================================
-// 🎮 Supabase Server Client for حخلص عليك Backend
+// 🎮 Supabase Server Client for هخلص عليك Backend
 // Uses service_role key for full admin access
 // ============================================
 import { createClient } from '@supabase/supabase-js';

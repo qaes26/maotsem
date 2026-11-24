@@ -1,5 +1,5 @@
 // ============================================
-// 🎮 Supabase-Powered Database Layer for حخلص عليك
+// 🎮 Supabase-Powered Database Layer for هخلص عليك
 // Wraps Supabase queries with local JSON fallback
 // ============================================
 import fs from 'fs';

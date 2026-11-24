@@ -1,5 +1,5 @@
 -- ============================================
--- 🎮 حخلص عليك (Seen Jeem) - Supabase Database Schema
+-- 🎮 هخلص عليك (Seen Jeem) - Supabase Database Schema
 -- قاعدة بيانات أسطورية كاملة للمنصة التنافسية
 -- ============================================
 
@@ -9,7 +9,7 @@
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   phone TEXT UNIQUE NOT NULL,
-  nickname TEXT NOT NULL DEFAULT 'لاعب حخلص عليك',
+  nickname TEXT NOT NULL DEFAULT 'لاعب هخلص عليك',
   avatar TEXT DEFAULT '🦁',
   points INTEGER DEFAULT 0,
   games_played INTEGER DEFAULT 0,

@@ -8,7 +8,7 @@ export default function Footer() {
         صُنع بـ <FaHeart className="text-[var(--color-danger)] text-xs" /> لمحبي المسابقات
       </p>
       <p className="text-xs text-white/20 mt-1">
-        حخلص عليك © {new Date().getFullYear()}
+        هخلص عليك © {new Date().getFullYear()}
       </p>
     </footer>
   );

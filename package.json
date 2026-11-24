@@ -1,7 +1,7 @@
 {
   "name": "hkhls-aleek",
   "version": "1.0.0",
-  "description": "حخلص عليك - Interactive Arabic Trivia & Party Game Platform",
+  "description": "هخلص عليك - Interactive Arabic Trivia & Party Game Platform",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",

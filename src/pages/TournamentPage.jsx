@@ -117,7 +117,7 @@ export default function TournamentPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black text-white">بطولة حخلص عليك الكبرى</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-white">بطولة هخلص عليك الكبرى</h1>
               <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[var(--color-accent)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
                 5 جولات نارية
               </span>

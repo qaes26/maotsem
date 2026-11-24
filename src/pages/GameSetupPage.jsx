@@ -20,21 +20,52 @@ import {
 import useGameStore from '../stores/gameStore';
 import { LifelineSelector } from '../components/Game/LifelinePanel';
 
-const ALL_AVAILABLE_CATEGORIES = [
-  { id: 'premier-league', name: 'الدوري الإنجليزي', icon: '🦁', color: 'from-purple-600/30 to-purple-900/30', border: 'border-purple-500/40', tag: 'كرة قدم' },
-  { id: 'la-liga', name: 'الدوري الإسباني والكلاسيكو', icon: '🇪🇸', color: 'from-red-600/30 to-amber-900/30', border: 'border-red-500/40', tag: 'كرة قدم' },
-  { id: 'champions-league', name: 'دوري أبطال أوروبا', icon: '⭐', color: 'from-blue-600/30 to-blue-900/30', border: 'border-blue-500/40', tag: 'كرة قدم' },
-  { id: 'world-cup-2022', name: 'كأس العالم 2022 وقطر', icon: '🏆', color: 'from-amber-600/30 to-amber-900/30', border: 'border-amber-500/40', tag: 'كرة قدم' },
-  { id: 'world-cup', name: 'كؤوس العالم التاريخية', icon: '🌍', color: 'from-emerald-600/30 to-emerald-900/30', border: 'border-emerald-500/40', tag: 'كرة قدم' },
-  { id: 'ronaldo-messi', name: 'رونالدو وميسي', icon: '🐐', color: 'from-yellow-600/30 to-yellow-900/30', border: 'border-yellow-500/40', tag: 'كرة قدم' },
-  { id: 'commentary-clues', name: 'صوت المعلق وأحداث كروية', icon: '🎙️', color: 'from-indigo-600/30 to-indigo-900/30', border: 'border-indigo-500/40', tag: 'تحدي كروي' },
-  { id: 'bab-al-hara', name: 'باب الحارة وحارة الضبع', icon: '🗡️', color: 'from-stone-600/30 to-stone-900/30', border: 'border-stone-500/40', tag: 'مسلسلات' },
-  { id: 'arabic-series', name: 'مسلسلات عربية ومصرية', icon: '📺', color: 'from-rose-600/30 to-rose-900/30', border: 'border-rose-500/40', tag: 'مسلسلات' },
-  { id: 'global-movies', name: 'أفلام ومسلسلات عالمية', icon: '🍿', color: 'from-pink-600/30 to-pink-900/30', border: 'border-pink-500/40', tag: 'سينما' },
-  { id: 'culture', name: 'معلومات عامة وثقافية', icon: '💡', color: 'from-teal-600/30 to-teal-900/30', border: 'border-teal-500/40', tag: 'ثقافة' },
-  { id: 'fashion-beauty', name: 'فئة البنات (موضة وجمال)', icon: '💄', color: 'from-fuchsia-600/30 to-fuchsia-900/30', border: 'border-fuchsia-500/40', tag: 'بنات' },
-  { id: 'math', name: 'رياضيات وألغاز ذكاء', icon: '🔢', color: 'from-cyan-600/30 to-cyan-900/30', border: 'border-cyan-500/40', tag: 'ذكاء' },
-  { id: 'arabic', name: 'لغة عربية وجذور وجموع', icon: '📖', color: 'from-orange-600/30 to-orange-900/30', border: 'border-orange-500/40', tag: 'لغة' },
+export const CATEGORY_SECTIONS = [
+  { id: 'all', name: 'جميع الأقسام', icon: '🌟' },
+  { id: 'football', name: 'كرة القدم والرياضة', icon: '⚽' },
+  { id: 'series', name: 'السينما والمسلسلات', icon: '🎬' },
+  { id: 'general', name: 'الثقافة العامة', icon: '💡' },
+  { id: 'girls', name: 'فئة البنات', icon: '💄' },
+  { id: 'math', name: 'الرياضيات والذكاء', icon: '🔢' },
+  { id: 'arabic', name: 'اللغة العربية', icon: '📖' },
+];
+
+export const ALL_AVAILABLE_CATEGORIES = [
+  // ⚽ كرة القدم والرياضة
+  { id: 'premier-league', name: 'الدوري الإنجليزي الممتاز', icon: '🦁', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-purple-600/30 to-purple-900/30', border: 'border-purple-500/40' },
+  { id: 'la-liga', name: 'الدوري الإسباني', icon: '🇪🇸', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-amber-600/30 to-amber-900/30', border: 'border-amber-500/40' },
+  { id: 'clasico', name: 'كلاسيكو ريال مدريد وبرشلونة', icon: '⚔️', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-red-600/30 to-blue-900/30', border: 'border-red-500/40' },
+  { id: 'champions-league', name: 'دوري أبطال أوروبا', icon: '⭐', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-blue-600/30 to-blue-900/30', border: 'border-blue-500/40' },
+  { id: 'world-cup-2022', name: 'كأس العالم 2022 قطر', icon: '🏆', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-rose-600/30 to-amber-900/30', border: 'border-rose-500/40' },
+  { id: 'world-cup', name: 'بطولات كأس العالم التاريخية', icon: '🌍', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-emerald-600/30 to-emerald-900/30', border: 'border-emerald-500/40' },
+  { id: 'ronaldo', name: 'كريستيانو رونالدو (الدون)', icon: '🐐', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-yellow-600/30 to-yellow-900/30', border: 'border-yellow-500/40' },
+  { id: 'messi', name: 'ليونيل ميسي (البرغوث)', icon: '🐐', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-cyan-600/30 to-blue-900/30', border: 'border-cyan-500/40' },
+  { id: 'serie-a', name: 'الدوري الإيطالي (الكالتشيو)', icon: '🇮🇹', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-green-600/30 to-emerald-900/30', border: 'border-green-500/40' },
+  { id: 'bundesliga', name: 'الدوري الألماني (البوندسليغا)', icon: '🇩🇪', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-yellow-600/30 to-red-900/30', border: 'border-yellow-500/40' },
+  { id: 'coaches', name: 'أساطير التدريب والتكتيك', icon: '👔', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-indigo-600/30 to-indigo-900/30', border: 'border-indigo-500/40' },
+  { id: 'sports-general', name: 'رياضة عامة وأولمبياد', icon: '🥇', sectionId: 'football', sectionName: 'رياضة عامة', color: 'from-teal-600/30 to-teal-900/30', border: 'border-teal-500/40' },
+
+  // 🎬 السينما والمسلسلات
+  { id: 'bab-al-hara', name: 'باب الحارة وحارة الضبع', icon: '🗡️', sectionId: 'series', sectionName: 'مسلسلات', color: 'from-stone-600/30 to-stone-900/30', border: 'border-stone-500/40' },
+  { id: 'arabic-series', name: 'مسلسلات عربية ومصرية', icon: '📺', sectionId: 'series', sectionName: 'مسلسلات', color: 'from-rose-600/30 to-rose-900/30', border: 'border-rose-500/40' },
+  { id: 'global-movies', name: 'أفلام عالمية وهوليوود', icon: '🍿', sectionId: 'series', sectionName: 'سينما', color: 'from-pink-600/30 to-pink-900/30', border: 'border-pink-500/40' },
+  { id: 'global-series', name: 'مسلسلات أجنبية وعالمية', icon: '🎬', sectionId: 'series', sectionName: 'مسلسلات', color: 'from-purple-600/30 to-purple-900/30', border: 'border-purple-500/40' },
+
+  // 💡 الثقافة العامة والمعلومات
+  { id: 'culture', name: 'معلومات عامة وثقافية', icon: '💡', sectionId: 'general', sectionName: 'ثقافة عامة', color: 'from-teal-600/30 to-teal-900/30', border: 'border-teal-500/40' },
+
+  // 💄 فئة البنات
+  { id: 'fashion-beauty', name: 'موضة وجمال ومكياج', icon: '💄', sectionId: 'girls', sectionName: 'بنات', color: 'from-fuchsia-600/30 to-fuchsia-900/30', border: 'border-fuchsia-500/40' },
+  { id: 'lifestyle', name: 'لايف ستايل وأناقة', icon: '👗', sectionId: 'girls', sectionName: 'بنات', color: 'from-pink-600/30 to-pink-900/30', border: 'border-pink-500/40' },
+
+  // 🔢 الرياضيات والذكاء
+  { id: 'mental-math', name: 'حساب ذهني وسرعة بديهة', icon: '🔢', sectionId: 'math', sectionName: 'رياضيات', color: 'from-cyan-600/30 to-cyan-900/30', border: 'border-cyan-500/40' },
+  { id: 'puzzles', name: 'ألغاز وتفكير منطقي', icon: '🧩', sectionId: 'math', sectionName: 'ذكاء', color: 'from-blue-600/30 to-blue-900/30', border: 'border-blue-500/40' },
+
+  // 📖 اللغة العربية
+  { id: 'plurals', name: 'جموع نادرة وتحدي المفردات', icon: '📖', sectionId: 'arabic', sectionName: 'لغة عربية', color: 'from-orange-600/30 to-orange-900/30', border: 'border-orange-500/40' },
+  { id: 'roots', name: 'جذور الكلمات والمعاجم', icon: '📜', sectionId: 'arabic', sectionName: 'لغة عربية', color: 'from-amber-600/30 to-amber-900/30', border: 'border-amber-500/40' },
+  { id: 'vocabulary', name: 'فصاحة وبلاغة وأمثال', icon: '🖋️', sectionId: 'arabic', sectionName: 'لغة عربية', color: 'from-lime-600/30 to-lime-900/30', border: 'border-lime-500/40' },
 ];
 
 export default function GameSetupPage({ onStart }) {
@@ -58,10 +89,11 @@ export default function GameSetupPage({ onStart }) {
       : ['premier-league', 'la-liga', 'champions-league', 'world-cup-2022', 'bab-al-hara', 'culture']
   );
 
+  const [activeSection, setActiveSection] = useState('all');
   const [activeMode, setActiveMode] = useState(isAIModeParam ? 'ai' : gameMode || 'team');
   const [activeDifficulty, setActiveDifficulty] = useState(aiDifficulty || 'medium');
   const [teamAName, setTeamAName] = useState('الفريق الأول');
-  const [teamBName, setTeamBName] = useState(isAIModeParam ? 'روبوت حخلص عليك (AI)' : 'الفريق الثاني');
+  const [teamBName, setTeamBName] = useState(isAIModeParam ? 'روبوت هخلص عليك (AI)' : 'الفريق الثاني');
   const [step, setStep] = useState(1); // 1: Categories, 2: Lifelines, 3: Launch
 
   // Selected Lifelines for Team A & Team B (max 3 each)
@@ -130,7 +162,7 @@ export default function GameSetupPage({ onStart }) {
             <FaBrain />
             <span>إعداد المواجهة التنافسية</span>
           </div>
-          <h1 className="text-3xl font-black text-white">إعداد مباراة حخلص عليك (6 فئات)</h1>
+          <h1 className="text-3xl font-black text-white">إعداد مباراة هخلص عليك (6 فئات)</h1>
           <p className="text-sm text-white/60 mt-1">
             اختر 6 فئات للمواجهة، وحدد وضع اللعب وخطوط النجاة لكل فريق
           </p>
@@ -164,67 +196,171 @@ export default function GameSetupPage({ onStart }) {
 
       {step === 1 ? (
         <div className="space-y-6">
-          {/* Category counter & random selector */}
-          <div className="flex items-center justify-between p-4 rounded-2xl glass-card border border-white/10">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
-                  chosenCats.length === 6
-                    ? 'bg-[var(--color-success)] text-white'
-                    : 'bg-[var(--color-accent)] text-[var(--color-primary)]'
-                }`}
-              >
-                {chosenCats.length}/6
-              </div>
-              <div>
-                <div className="text-sm font-bold text-white">
-                  {chosenCats.length === 6
-                    ? 'اكتمل اختيار 6 فئات! يمكنك المتابعة'
-                    : `اختر ${6 - chosenCats.length} فئات إضافية`}
+          {/* Selected 6 Categories Top Tray */}
+          <div className="p-5 rounded-3xl glass-card border-2 border-[var(--color-accent)]/30 space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-lg shadow-md ${
+                    chosenCats.length === 6
+                      ? 'bg-[var(--color-success)] text-white ring-2 ring-[var(--color-success)]/40'
+                      : 'bg-[var(--color-accent)] text-[var(--color-primary)] ring-2 ring-[var(--color-accent)]/40'
+                  }`}
+                >
+                  {chosenCats.length}/6
                 </div>
-                <div className="text-xs text-white/50">تتكون اللوحة من 6 أعمدة و3 أسئلة لكل عمود (18 سؤالاً)</div>
+                <div>
+                  <div className="text-base font-black text-white">
+                    {chosenCats.length === 6
+                      ? '🎉 اكتمل اختيار الفئات الـ 6 للوحة بنجاح!'
+                      : `لوحة الفئات الـ 6 (متبقي ${6 - chosenCats.length} فئات)`}
+                  </div>
+                  <div className="text-xs text-white/50">
+                    انقر على أي فئة لإضافتها أو إزالتها من اللوحة المكونة من 18 سؤالاً
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSelectRandom}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-bold flex items-center gap-2 transition-all border border-white/10"
+                >
+                  <FaRandom />
+                  <span>اختيار عشوائي منوع</span>
+                </button>
+                {chosenCats.length > 0 && (
+                  <button
+                    onClick={() => setChosenCats([])}
+                    className="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold transition-all border border-red-500/20"
+                    title="تفريغ الاختيارات"
+                  >
+                    تفريغ
+                  </button>
+                )}
               </div>
             </div>
 
-            <button
-              onClick={handleSelectRandom}
-              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-bold flex items-center gap-2 transition-all border border-white/10"
-            >
-              <FaRandom />
-              <span>اختيار عشوائي</span>
-            </button>
+            {/* 6 Visual Slots for Selected Categories */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+              {[0, 1, 2, 3, 4, 5].map((slotIdx) => {
+                const catId = chosenCats[slotIdx];
+                const cat = ALL_AVAILABLE_CATEGORIES.find((c) => c.id === catId);
+
+                if (cat) {
+                  return (
+                    <motion.div
+                      key={cat.id}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="relative p-3 rounded-2xl bg-white/10 border border-[var(--color-accent)]/50 text-center flex flex-col items-center justify-between min-h-[90px] shadow-md group"
+                    >
+                      <button
+                        onClick={() => handleToggleCategory(cat.id)}
+                        className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center opacity-80 hover:opacity-100 shadow"
+                        title="إزالة الفئة"
+                      >
+                        ✕
+                      </button>
+                      <span className="text-xl">{cat.icon}</span>
+                      <span className="text-xs font-bold text-white line-clamp-1">{cat.name}</span>
+                      <span className="text-[9px] text-[var(--color-accent)] font-semibold">{cat.sectionName}</span>
+                    </motion.div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={`empty-${slotIdx}`}
+                    className="p-3 rounded-2xl border-2 border-dashed border-white/15 bg-white/5 text-center flex flex-col items-center justify-center min-h-[90px] text-white/30"
+                  >
+                    <span className="text-xs font-mono font-bold mb-1">فئة {slotIdx + 1}</span>
+                    <span className="text-[10px]">+ شاغرة</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Categories Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {ALL_AVAILABLE_CATEGORIES.map((cat) => {
+          {/* Section Filter Tabs (تقسيم الفئات لأقسام) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-white/70">تصفح الفئات حسب الأقسام:</span>
+              <span className="text-xs text-white/40 font-mono">
+                {activeSection === 'all'
+                  ? `إجمالي الفئات: ${ALL_AVAILABLE_CATEGORIES.length}`
+                  : `فئات القسم: ${ALL_AVAILABLE_CATEGORIES.filter((c) => c.sectionId === activeSection).length}`}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+              {CATEGORY_SECTIONS.map((sec) => {
+                const isActive = activeSection === sec.id;
+                const count =
+                  sec.id === 'all'
+                    ? ALL_AVAILABLE_CATEGORIES.length
+                    : ALL_AVAILABLE_CATEGORIES.filter((c) => c.sectionId === sec.id).length;
+
+                return (
+                  <button
+                    key={sec.id}
+                    onClick={() => setActiveSection(sec.id)}
+                    className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 border ${
+                      isActive
+                        ? 'gradient-accent text-[var(--color-primary)] border-transparent shadow-lg shadow-amber-500/20'
+                        : 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border-white/10'
+                    }`}
+                  >
+                    <span>{sec.icon}</span>
+                    <span>{sec.name}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        isActive ? 'bg-black/20 text-black' : 'bg-white/10 text-white/50'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filtered Categories Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+            {ALL_AVAILABLE_CATEGORIES.filter(
+              (cat) => activeSection === 'all' || cat.sectionId === activeSection
+            ).map((cat) => {
               const isSelected = chosenCats.includes(cat.id);
+              const selectionIndex = chosenCats.indexOf(cat.id);
+
               return (
                 <motion.div
                   key={cat.id}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleToggleCategory(cat.id)}
-                  className={`relative p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between h-36 ${
+                  className={`relative p-4 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between h-36 ${
                     isSelected
                       ? `bg-gradient-to-br ${cat.color} ${cat.border} shadow-lg shadow-[var(--color-accent)]/20 scale-[1.02]`
-                      : 'bg-[var(--color-surface)]/60 border-white/5 hover:border-white/20 opacity-70 hover:opacity-100'
+                      : 'bg-[var(--color-surface)]/60 border-white/5 hover:border-white/20 opacity-75 hover:opacity-100'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-2xl">{cat.icon}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/30 text-white/70">
-                      {cat.tag}
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/40 text-white/80">
+                      {cat.sectionName}
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="text-sm sm:text-base font-black text-white leading-snug">{cat.name}</h3>
+                    <h3 className="text-sm font-black text-white leading-snug">{cat.name}</h3>
                   </div>
 
                   {isSelected && (
-                    <div className="absolute top-3 left-3 w-6 h-6 rounded-full bg-[var(--color-accent)] text-[var(--color-primary)] flex items-center justify-center text-xs font-bold shadow-md">
-                      <FaCheck />
+                    <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-accent)] text-[var(--color-primary)] flex items-center gap-1 text-[11px] font-black shadow-md">
+                      <FaCheck className="text-[10px]" />
+                      <span>فئة {selectionIndex + 1}</span>
                     </div>
                   )}
                 </motion.div>
@@ -233,11 +369,19 @@ export default function GameSetupPage({ onStart }) {
           </div>
 
           {/* Continue button */}
-          <div className="flex justify-end pt-4">
+          <div className="flex items-center justify-between pt-4 border-t border-white/10">
+            <div className="text-xs text-white/50">
+              {chosenCats.length === 6 ? (
+                <span className="text-emerald-400 font-bold">✓ جاهز للمتابعة إلى إعداد الفرق وخطوط النجاة</span>
+              ) : (
+                <span>يرجى اختيار 6 فئات كاملة لتفعيل زر المتابعة</span>
+              )}
+            </div>
+
             <button
               onClick={() => setStep(2)}
               disabled={chosenCats.length !== 6}
-              className={`px-8 py-4 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shadow-xl ${
+              className={`px-8 py-3.5 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shadow-xl ${
                 chosenCats.length === 6
                   ? 'gradient-accent text-[var(--color-primary)] hover:scale-105 active:scale-95'
                   : 'bg-white/10 text-white/30 cursor-not-allowed'
@@ -276,7 +420,7 @@ export default function GameSetupPage({ onStart }) {
                 type="button"
                 onClick={() => {
                   setActiveMode('ai');
-                  setTeamBName('روبوت حخلص عليك (AI)');
+                  setTeamBName('روبوت هخلص عليك (AI)');
                 }}
                 className={`p-4 rounded-2xl border-2 text-center transition-all ${
                   activeMode === 'ai'

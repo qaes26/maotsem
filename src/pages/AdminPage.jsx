@@ -424,7 +424,7 @@ function ThemeTab() {
           >
             <div className="flex items-center gap-3">
               <span className="text-2xl font-black" style={{ color: local.accent }}>
-                حخلص عليك
+                هخلص عليك
               </span>
               <span className="text-xs px-2.5 py-1 rounded-full font-bold" style={{ background: `${local.accent}20`, color: local.accent }}>
                 معركة العقول ⚡
@@ -628,7 +628,7 @@ function ThemeTab() {
               ))}
             </select>
             <p className="text-xs text-gray-500 mt-1.5" style={{ fontFamily: local.fontFamily }}>
-              معاينة: «حخلص عليك - تحدي معلومات كرة القدم والمسلسلات والثقافة العامة»
+              معاينة: «هخلص عليك - تحدي معلومات كرة القدم والمسلسلات والثقافة العامة»
             </p>
           </div>
 
@@ -1922,7 +1922,7 @@ function AdminDashboard() {
         <aside className="hidden lg:flex flex-col w-64 bg-secondary border-l border-surface-light shrink-0">
           <div className="p-5 border-b border-surface-light">
             <h1 className="text-xl font-bold text-accent">لوحة التحكم</h1>
-            <p className="text-sm text-gray-500 mt-1">حخلص عليك</p>
+            <p className="text-sm text-gray-500 mt-1">هخلص عليك</p>
           </div>
           <nav className="flex-1 p-3 space-y-1">
             {TABS.map((tab) => {
