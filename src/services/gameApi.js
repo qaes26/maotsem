@@ -123,25 +123,31 @@ export const gameApi = {
       }
     } catch {}
 
+    const localAuctions = getLocalAuctions();
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.from('auction_challenges').select('*').eq('is_active', true).order('sort_order');
         if (!error && data && data.length > 0) {
-          return data.map(a => ({
-            id: a.id,
-            title: a.title,
-            description: a.description,
-            hint: a.hint,
-            startingBid: a.starting_bid,
-            timeSeconds: a.time_seconds,
-            pointsReward: a.points_reward,
-            validAnswers: a.valid_answers,
-          }));
+          const byId = new Map();
+          for (const a of localAuctions) byId.set(a.id, a);
+          for (const a of data) {
+            byId.set(a.id, {
+              id: a.id,
+              title: a.title,
+              description: a.description,
+              hint: a.hint,
+              startingBid: a.starting_bid,
+              timeSeconds: a.time_seconds,
+              pointsReward: a.points_reward,
+              validAnswers: a.valid_answers,
+            });
+          }
+          return Array.from(byId.values());
         }
       } catch {}
     }
 
-    return getLocalAuctions();
+    return localAuctions;
   },
 
   // 4. Sketches

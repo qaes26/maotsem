@@ -123,10 +123,16 @@ router.get('/mafia-roles', (req, res) => {
   res.json({ success: true, roles: getMafiaRoles() });
 });
 
-// GET /api/game/auctions - get football auction challenges
+// GET /api/game/auctions - get diverse auction challenges (merge Supabase + local)
 router.get('/auctions', async (req, res) => {
-  const supaAuctions = await db.getAuctions();
-  res.json({ success: true, auctions: supaAuctions || getAuctionChallenges() });
+  const supaAuctions = await db.getAuctions().catch(() => null);
+  const localAuctions = getAuctionChallenges();
+  const byId = new Map();
+  for (const a of localAuctions) byId.set(a.id, a);
+  if (Array.isArray(supaAuctions)) {
+    for (const a of supaAuctions) byId.set(a.id, a);
+  }
+  res.json({ success: true, auctions: Array.from(byId.values()) });
 });
 
 // GET /api/game/sketches - get interactive goal sketches
