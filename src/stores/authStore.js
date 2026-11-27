@@ -87,6 +87,16 @@ const useAuthStore = create((set, get) => ({
 
         // Case 1: Returning user by phone
         if (existingPhone) {
+          // STRICT: One phone = ONE permanent username only ("رقم الهاتف ممنوع حد يسجل عليه باسم مختلف")
+          if (
+            existingPhone.nickname &&
+            existingPhone.nickname.trim().toLowerCase() !== cleanNickname.toLowerCase()
+          ) {
+            const err = `هذا الرقم مسجل مسبقاً باسم المستخدم "${existingPhone.nickname}" فقط! يُمنع التسجيل باسم مختلف على نفس الرقم، يرجى الدخول باسمك المسجل أو استخدام رقم آخر.`;
+            set({ isLoading: false, error: err });
+            return { success: false, message: err };
+          }
+
           if (existingNick && existingNick.phone !== cleanPhone) {
             const err = `اسم المستخدم "${cleanNickname}" محجوز للاعب آخر، يرجى اختيار اسم مستخدم مميز`;
             set({ isLoading: false, error: err });
@@ -95,13 +105,12 @@ const useAuthStore = create((set, get) => ({
 
           const updated = {
             ...existingPhone,
-            nickname: cleanNickname,
+            nickname: existingPhone.nickname || cleanNickname,
             avatar: avatar || existingPhone.avatar || '🦁',
             last_login_at: new Date().toISOString(),
           };
 
           await supabase.from('profiles').update({
-            nickname: cleanNickname,
             avatar: updated.avatar,
             last_login_at: updated.last_login_at,
           }).eq('id', existingPhone.id);
@@ -172,21 +181,47 @@ const useAuthStore = create((set, get) => ({
       }
     }
 
-    // C. Offline Local Fallback
-    const localUser = {
-      id: 'local_' + Date.now(),
-      phone: cleanPhone,
-      nickname: cleanNickname,
-      avatar: avatar || '🦁',
-      points: 0,
-      gamesPlayed: 0,
-      gamesWon: 0,
-    };
-    const localToken = 'local_token_' + Date.now();
-    localStorage.setItem('token', localToken);
-    localStorage.setItem('user', JSON.stringify(localUser));
-    set({ user: localUser, token: localToken, isAuthenticated: true, isLoading: false, error: null });
-    return { success: true, user: localUser, token: localToken };
+    // C. Offline Local Fallback (also enforce 1-to-1 phone<->username locally)
+    try {
+      const localRegistry = JSON.parse(localStorage.getItem('hkhels_local_users_registry') || '{}');
+      const existingByPhoneLocal = localRegistry[cleanPhone];
+      if (
+        existingByPhoneLocal &&
+        existingByPhoneLocal.nickname.trim().toLowerCase() !== cleanNickname.toLowerCase()
+      ) {
+        const err = `هذا الرقم مسجل مسبقاً باسم المستخدم "${existingByPhoneLocal.nickname}" فقط! يُمنع التسجيل باسم مختلف على نفس الرقم.`;
+        set({ isLoading: false, error: err });
+        return { success: false, message: err };
+      }
+      const takenByOther = Object.entries(localRegistry).find(
+        ([ph, u]) => ph !== cleanPhone && u.nickname.trim().toLowerCase() === cleanNickname.toLowerCase()
+      );
+      if (takenByOther) {
+        const err = `اسم المستخدم "${cleanNickname}" مستخدم بالفعل من قبل لاعب آخر، يرجى اختيار اسم آخر`;
+        set({ isLoading: false, error: err });
+        return { success: false, message: err };
+      }
+
+      const localUser = existingByPhoneLocal
+        ? { ...existingByPhoneLocal, avatar: avatar || existingByPhoneLocal.avatar }
+        : {
+            id: 'local_' + Date.now(),
+            phone: cleanPhone,
+            nickname: cleanNickname,
+            avatar: avatar || '🦁',
+            points: 0,
+            gamesPlayed: 0,
+            gamesWon: 0,
+          };
+      localRegistry[cleanPhone] = localUser;
+      localStorage.setItem('hkhels_local_users_registry', JSON.stringify(localRegistry));
+
+      const localToken = 'local_token_' + Date.now();
+      localStorage.setItem('token', localToken);
+      localStorage.setItem('user', JSON.stringify(localUser));
+      set({ user: localUser, token: localToken, isAuthenticated: true, isLoading: false, error: null });
+      return { success: true, user: localUser, token: localToken };
+    } catch {}
   },
 
   // 2. Check Username Availability

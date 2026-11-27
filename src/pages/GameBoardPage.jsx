@@ -133,6 +133,8 @@ export default function GameBoardPage() {
               ? match.options[match.correctAnswer]
               : match.answer || 'الإجابة النموذجية');
 
+          const resolvedMedia = match.mediaUrl || match.image || catImage;
+
           return {
             ...match,
             slotId,
@@ -140,6 +142,9 @@ export default function GameBoardPage() {
             catImage,
             catIcon,
             catDisplayName: catName,
+            mediaType: match.mediaType || 'image',
+            mediaUrl: resolvedMedia,
+            image: resolvedMedia,
             id: `${match.id || catId}_${cIdx}_${qIdx}_${points}`,
             correctAnswerText,
           };
@@ -151,6 +156,9 @@ export default function GameBoardPage() {
           catImage,
           catIcon,
           catDisplayName: catName,
+          mediaType: 'image',
+          mediaUrl: catImage,
+          image: catImage,
           question: `سؤال في ${catName} بقيمة ${points} نقطة`,
           options: ['الإجابة النموذجية'],
           correctAnswer: 0,
@@ -280,12 +288,16 @@ export default function GameBoardPage() {
             (newQ.options && typeof newQ.correctAnswer === 'number'
               ? newQ.options[newQ.correctAnswer]
               : newQ.answer || 'الإجابة النموذجية');
+          const swappedMedia = newQ.mediaUrl || newQ.image || activeQuestion.catImage;
           setActiveQuestion({
             ...newQ,
             slotId: activeQuestion.slotId,
             catImage: activeQuestion.catImage,
             catIcon: activeQuestion.catIcon,
             catDisplayName: activeQuestion.catDisplayName,
+            mediaType: newQ.mediaType || 'image',
+            mediaUrl: swappedMedia,
+            image: swappedMedia,
             correctAnswerText,
           });
         }
@@ -366,7 +378,7 @@ export default function GameBoardPage() {
   };
 
   if (!isGameActive || selectedCategories.length < 6) {
-    return <GameSetupPage onStart={() => {}} />;
+    return <GameSetupPage onStart={() => { }} />;
   }
 
   const teamALeading = scores.teamA > scores.teamB;
@@ -423,11 +435,10 @@ export default function GameBoardPage() {
               ? { scale: [1, 1.01, 1], borderColor: 'var(--color-accent)' }
               : { scale: 1, borderColor: 'rgba(255,255,255,0.1)' }
           }
-          className={`p-5 rounded-3xl glass-card border-2 transition-all relative overflow-hidden ${
-            currentTurn === 'teamA'
+          className={`p-5 rounded-3xl glass-card border-2 transition-all relative overflow-hidden ${currentTurn === 'teamA'
               ? 'bg-gradient-to-r from-[var(--color-accent)]/20 via-yellow-600/10 to-transparent shadow-xl shadow-[var(--color-accent)]/20'
               : 'bg-white/5'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -467,15 +478,14 @@ export default function GameBoardPage() {
                     disabled={isUsed || currentTurn !== 'teamA' || !activeQuestion || isAnswerRevealed}
                     onClick={() => handleUseLifeline(lf.id)}
                     title={`${lf.label} ${isUsed ? '(مستخدمة)' : ''}`}
-                    className={`px-2.5 h-8 rounded-xl text-xs font-bold flex items-center gap-1 transition-all ${
-                      isActiveInTurn
+                    className={`px-2.5 h-8 rounded-xl text-xs font-bold flex items-center gap-1 transition-all ${isActiveInTurn
                         ? 'bg-[var(--color-accent)] text-black ring-2 ring-white animate-pulse'
                         : isUsed
-                        ? 'bg-white/5 opacity-30 text-white/30 cursor-not-allowed line-through'
-                        : currentTurn === 'teamA' && activeQuestion && !isAnswerRevealed
-                        ? 'bg-white/10 hover:bg-[var(--color-accent)] hover:text-black text-white hover:scale-105 shadow-md'
-                        : 'bg-white/5 text-white/50'
-                    }`}
+                          ? 'bg-white/5 opacity-30 text-white/30 cursor-not-allowed line-through'
+                          : currentTurn === 'teamA' && activeQuestion && !isAnswerRevealed
+                            ? 'bg-white/10 hover:bg-[var(--color-accent)] hover:text-black text-white hover:scale-105 shadow-md'
+                            : 'bg-white/5 text-white/50'
+                      }`}
                   >
                     <span>{lf.icon}</span>
                     <span className="text-[10px] hidden sm:inline">{lf.label}</span>
@@ -493,11 +503,10 @@ export default function GameBoardPage() {
               ? { scale: [1, 1.01, 1], borderColor: '#38bdf8' }
               : { scale: 1, borderColor: 'rgba(255,255,255,0.1)' }
           }
-          className={`p-5 rounded-3xl glass-card border-2 transition-all relative overflow-hidden ${
-            currentTurn === 'teamB'
+          className={`p-5 rounded-3xl glass-card border-2 transition-all relative overflow-hidden ${currentTurn === 'teamB'
               ? 'bg-gradient-to-r from-cyan-600/20 via-blue-600/10 to-transparent shadow-xl shadow-cyan-500/20'
               : 'bg-white/5'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -537,15 +546,14 @@ export default function GameBoardPage() {
                     disabled={isUsed || currentTurn !== 'teamB' || !activeQuestion || isAnswerRevealed}
                     onClick={() => handleUseLifeline(lf.id)}
                     title={`${lf.label} ${isUsed ? '(مستخدمة)' : ''}`}
-                    className={`px-2.5 h-8 rounded-xl text-xs font-bold flex items-center gap-1 transition-all ${
-                      isActiveInTurn
+                    className={`px-2.5 h-8 rounded-xl text-xs font-bold flex items-center gap-1 transition-all ${isActiveInTurn
                         ? 'bg-cyan-400 text-black ring-2 ring-white animate-pulse'
                         : isUsed
-                        ? 'bg-white/5 opacity-30 text-white/30 cursor-not-allowed line-through'
-                        : currentTurn === 'teamB' && activeQuestion && !isAnswerRevealed
-                        ? 'bg-white/10 hover:bg-cyan-400 hover:text-black text-white hover:scale-105 shadow-md'
-                        : 'bg-white/5 text-white/50'
-                    }`}
+                          ? 'bg-white/5 opacity-30 text-white/30 cursor-not-allowed line-through'
+                          : currentTurn === 'teamB' && activeQuestion && !isAnswerRevealed
+                            ? 'bg-white/10 hover:bg-cyan-400 hover:text-black text-white hover:scale-105 shadow-md'
+                            : 'bg-white/5 text-white/50'
+                      }`}
                   >
                     <span>{lf.icon}</span>
                     <span className="text-[10px] hidden sm:inline">{lf.label}</span>
@@ -594,13 +602,12 @@ export default function GameBoardPage() {
                       whileTap={!isAnswered ? { scale: 0.96 } : {}}
                       disabled={isAnswered || !!activeQuestion || (currentTurn === 'teamB' && gameMode === 'ai')}
                       onClick={() => handleSelectQuestion(q, cIdx, qIdx)}
-                      className={`w-full py-4 sm:py-5 rounded-2xl font-black text-base sm:text-xl font-mono tracking-wider transition-all duration-300 shadow-lg ${
-                        isAnswered
+                      className={`w-full py-4 sm:py-5 rounded-2xl font-black text-base sm:text-xl font-mono tracking-wider transition-all duration-300 shadow-lg ${isAnswered
                           ? 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed line-through'
                           : isCurrentActive
-                          ? 'bg-[var(--color-accent)] text-[var(--color-primary)] ring-4 ring-[var(--color-accent)]/50 scale-105'
-                          : 'bg-gradient-to-b from-[var(--color-surface)] to-[var(--color-surface-dark)] hover:from-[var(--color-accent)]/20 hover:to-[var(--color-surface)] text-[var(--color-accent)] border border-[var(--color-accent)]/30 hover:border-[var(--color-accent)] shadow-[var(--color-accent)]/10'
-                      }`}
+                            ? 'bg-[var(--color-accent)] text-[var(--color-primary)] ring-4 ring-[var(--color-accent)]/50 scale-105'
+                            : 'bg-gradient-to-b from-[var(--color-surface)] to-[var(--color-surface-dark)] hover:from-[var(--color-accent)]/20 hover:to-[var(--color-surface)] text-[var(--color-accent)] border border-[var(--color-accent)]/30 hover:border-[var(--color-accent)] shadow-[var(--color-accent)]/10'
+                        }`}
                     >
                       {isAnswered ? '✓' : q.points}
                     </motion.button>
@@ -624,16 +631,16 @@ export default function GameBoardPage() {
             >
               {/* Category Banner Strip inside Modal */}
               {activeQuestion.catImage && (
-                <div className="relative h-24 rounded-2xl overflow-hidden border border-white/10">
+                <div className="relative h-16 rounded-2xl overflow-hidden border border-white/10">
                   <img
                     src={activeQuestion.catImage}
                     alt={activeQuestion.catDisplayName}
                     onError={(e) => { e.currentTarget.src = FALLBACK_CATEGORY_IMAGE; }}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/50 to-slate-950/90 flex items-center justify-between px-5">
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/55 to-slate-950/90 flex items-center justify-between px-5">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{activeQuestion.catIcon || '🎯'}</span>
+                      <span className="text-xl">{activeQuestion.catIcon || '🎯'}</span>
                       <span className="text-sm sm:text-base font-black text-white">
                         {activeQuestion.catDisplayName || activeQuestion.subcategoryName || activeQuestion.categoryName}
                       </span>
@@ -642,6 +649,30 @@ export default function GameBoardPage() {
                       {currentLifeline === 'double' ? activeQuestion.points * 2 : activeQuestion.points} نقطة
                     </span>
                   </div>
+                </div>
+              )}
+
+              {/* Question Dedicated Visual / Media Display */}
+              {activeQuestion.mediaType === 'audio' && activeQuestion.mediaUrl ? (
+                <div className="p-4 rounded-2xl bg-slate-900/80 border border-white/15 flex flex-col items-center gap-2">
+                  <span className="text-xs font-bold text-amber-400">🎧 استمع إلى مقطع السؤال:</span>
+                  <audio controls src={activeQuestion.mediaUrl} className="w-full max-w-md" />
+                </div>
+              ) : (
+                <div className="relative h-44 sm:h-56 rounded-2xl overflow-hidden border-2 border-white/15 bg-slate-950/60 shadow-xl">
+                  <img
+                    src={activeQuestion.mediaUrl || activeQuestion.image || activeQuestion.catImage || FALLBACK_CATEGORY_IMAGE}
+                    alt={activeQuestion.question}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = activeQuestion.catImage || FALLBACK_CATEGORY_IMAGE;
+                    }}
+                    className="w-full h-full object-cover object-center"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent pointer-events-none" />
+                  <span className="absolute bottom-2.5 right-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-[11px] font-bold text-amber-300 border border-amber-400/30">
+                    🖼️ صورة السؤال
+                  </span>
                 </div>
               )}
 
@@ -680,11 +711,10 @@ export default function GameBoardPage() {
 
               {bombResult && (
                 <div
-                  className={`p-3 rounded-2xl text-center text-xs font-black flex items-center justify-center gap-2 ${
-                    bombResult.outcome === 'bonus'
+                  className={`p-3 rounded-2xl text-center text-xs font-black flex items-center justify-center gap-2 ${bombResult.outcome === 'bonus'
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                       : 'bg-red-500/20 text-red-400 border border-red-500/40'
-                  }`}
+                    }`}
                 >
                   <FaBomb />
                   <span>
@@ -814,8 +844,8 @@ export default function GameBoardPage() {
                   {teamALeading
                     ? `🏆 فاز ${teamNames.teamA} بجدارة!`
                     : teamBLeading
-                    ? `🏆 فاز ${teamNames.teamB} بجدارة!`
-                    : '🤝 تعادل تاريخي ومثير بين الفريقين!'}
+                      ? `🏆 فاز ${teamNames.teamB} بجدارة!`
+                      : '🤝 تعادل تاريخي ومثير بين الفريقين!'}
                 </div>
               </div>
 

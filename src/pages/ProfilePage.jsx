@@ -31,7 +31,8 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     try {
-      await updateProfile({ nickname, avatar });
+      // Keep nickname permanently bound to the phone number
+      await updateProfile({ avatar });
       setIsEditing(false);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
@@ -74,20 +75,17 @@ export default function ProfilePage() {
           <div className="flex-1 text-center sm:text-right space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               {isEditing ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    className="bg-[var(--color-surface)] border border-[var(--color-accent)] text-white px-3 py-1.5 rounded-xl font-bold text-lg focus:outline-none"
-                    placeholder="اسم المستخدم"
-                  />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="bg-[var(--color-surface)] border border-white/15 text-white/70 px-3 py-1.5 rounded-xl font-bold text-sm flex items-center gap-2">
+                    <span>{user?.nickname}</span>
+                    <span className="text-[10px] text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full">🔒 اسم ثابت</span>
+                  </div>
                   <button
                     onClick={handleSave}
-                    className="px-4 py-2 rounded-xl gradient-accent text-[var(--color-primary)] font-bold text-sm flex items-center gap-1 shadow-md hover:scale-105"
+                    className="px-4 py-2 rounded-xl gradient-accent text-[var(--color-primary)] font-bold text-sm flex items-center justify-center gap-1 shadow-md hover:scale-105"
                   >
                     <FaSave />
-                    <span>حفظ</span>
+                    <span>حفظ الصورة</span>
                   </button>
                 </div>
               ) : (

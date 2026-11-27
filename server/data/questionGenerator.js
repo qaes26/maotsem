@@ -1,6 +1,10 @@
 // Dynamic Question & Challenge Generator for "هخلص عليك"
 // Continuously generates unique, non-repeating rounds and questions
 
+const GEN_MATH_IMG = 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80';
+const GEN_PUZZLE_IMG = 'https://upload.wikimedia.org/wikipedia/commons/6/6f/ChessSet.jpg';
+const GEN_ARABIC_IMG = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Ibn_al-Bawwab_-_Qur%CA%BEan_f._278v-279r.jpg/960px-Ibn_al-Bawwab_-_Qur%CA%BEan_f._278v-279r.jpg';
+
 export function generateMathQuestion() {
   const types = ['multiply', 'equation', 'sequence', 'percentage', 'square'];
   const type = types[Math.floor(Math.random() * types.length)];
@@ -28,6 +32,9 @@ export function generateMathQuestion() {
       correctAnswer: options.indexOf(correct),
       points: 200,
       difficulty: 'easy',
+      mediaType: 'image',
+      mediaUrl: GEN_MATH_IMG,
+      image: GEN_MATH_IMG,
       explanation: `${a} × ${b} = ${correct}. طريقة سريعة: ${a} × ${Math.floor(b / 10) * 10} + ${a} × ${b % 10} = ${correct}`,
     };
   }
@@ -57,6 +64,9 @@ export function generateMathQuestion() {
       correctAnswer: options.indexOf(correct),
       points: 400,
       difficulty: 'medium',
+      mediaType: 'image',
+      mediaUrl: GEN_MATH_IMG,
+      image: GEN_MATH_IMG,
       explanation: `(${pct} ÷ 100) × ${base} = ${correct}`,
     };
   }
@@ -85,6 +95,9 @@ export function generateMathQuestion() {
       correctAnswer: options.indexOf(correct),
       points: 400,
       difficulty: 'medium',
+      mediaType: 'image',
+      mediaUrl: GEN_PUZZLE_IMG,
+      image: GEN_PUZZLE_IMG,
       explanation: `النمط يزيد بمقدار (+${diff}) في كل خطوة، إذن الرقم التالي هو ${seq[3]} + ${diff} = ${correct}`,
     };
   }
@@ -110,6 +123,9 @@ export function generateMathQuestion() {
     correctAnswer: options.indexOf(correct),
     points: 600,
     difficulty: 'hard',
+    mediaType: 'image',
+    mediaUrl: GEN_MATH_IMG,
+    image: GEN_MATH_IMG,
     explanation: `${n} × ${n} = ${correct}`,
   };
 }
@@ -145,6 +161,9 @@ export function generateArabicRootQuestion() {
     correctAnswer: options.indexOf(item.root),
     points: 400,
     difficulty: 'medium',
+    mediaType: 'image',
+    mediaUrl: GEN_ARABIC_IMG,
+    image: GEN_ARABIC_IMG,
     explanation: `جذر كلمة (${item.word}) هو الأحرف الأصلية: (${item.root.split('').join(' - ')}).`,
   };
 }
@@ -177,6 +196,9 @@ export function generateFreshRound(baseQuestions, selectedCategoryIds) {
           options: ['خيار 1', 'خيار 2', 'خيار 3', 'خيار 4'],
           correctAnswer: 0,
           points: pv,
+          mediaType: 'image',
+          mediaUrl: GEN_PUZZLE_IMG,
+          image: GEN_PUZZLE_IMG,
           explanation: 'إجابة السؤال الصحيحة.',
         });
       }

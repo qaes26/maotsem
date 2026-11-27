@@ -75,7 +75,7 @@ export const gameApi = {
       // ignore
     }
 
-    // Direct Supabase query
+    // Direct Supabase query (merged with local verified question media, deduplicating by id or question text)
     if (isSupabaseConfigured() && supabase) {
       try {
         let q = supabase.from('questions').select('*').eq('is_active', true);
@@ -83,19 +83,37 @@ export const gameApi = {
         if (subcategory) q = q.eq('subcategory_slug', subcategory);
         const { data, error } = await q;
         if (!error && data && data.length > 0) {
-          return data.map(row => ({
-            id: row.id,
-            category: row.category_slug,
-            subcategory: row.subcategory_slug,
-            question: row.question,
-            options: row.options,
-            correctAnswer: row.correct_answer,
-            points: row.points,
-            difficulty: row.difficulty,
-            explanation: row.explanation,
-            mediaType: row.media_type,
-            mediaUrl: row.media_url,
-          }));
+          const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+          const byId = new Map();
+          const textToId = new Map();
+          let base = getLocalQuestions();
+          if (category) base = base.filter(item => item.category === category || item.subcategory === category);
+          if (subcategory) base = base.filter(item => item.subcategory === subcategory);
+          for (const item of base) {
+            byId.set(item.id, item);
+            if (item.question) textToId.set(norm(item.question), item.id);
+          }
+          for (const row of data) {
+            const targetId = byId.has(row.id) ? row.id : (textToId.get(norm(row.question)) || row.id);
+            const prev = byId.get(targetId) || {};
+            const resolvedMedia = row.media_url || prev.mediaUrl || prev.image || 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=600&q=80';
+            byId.set(targetId, {
+              ...prev,
+              id: targetId,
+              category: row.category_slug || prev.category,
+              subcategory: row.subcategory_slug || prev.subcategory,
+              question: row.question,
+              options: row.options,
+              correctAnswer: row.correct_answer,
+              points: row.points,
+              difficulty: row.difficulty,
+              explanation: row.explanation,
+              mediaType: row.media_type || prev.mediaType || 'image',
+              mediaUrl: resolvedMedia,
+              image: resolvedMedia,
+            });
+          }
+          return Array.from(byId.values());
         }
       } catch (err) {
         console.warn('[gameApi] Supabase questions error:', err);
@@ -128,14 +146,23 @@ export const gameApi = {
       try {
         const { data, error } = await supabase.from('auction_challenges').select('*').eq('is_active', true).order('sort_order');
         if (!error && data && data.length > 0) {
+          const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
           const byId = new Map();
-          for (const a of localAuctions) byId.set(a.id, a);
+          const titleToId = new Map();
+          for (const a of localAuctions) {
+            byId.set(a.id, a);
+            if (a.title) titleToId.set(norm(a.title), a.id);
+          }
           for (const a of data) {
-            byId.set(a.id, {
-              id: a.id,
+            const targetId = byId.has(a.id) ? a.id : (titleToId.get(norm(a.title)) || a.id);
+            const prev = byId.get(targetId) || {};
+            byId.set(targetId, {
+              ...prev,
+              id: targetId,
               title: a.title,
               description: a.description,
               hint: a.hint,
+              image: a.image || prev.image || 'https://thumb.wikimedia.org/wikipedia/en/thumb/f/f5/UEFA_Champions_League.svg/960px-UEFA_Champions_League.svg.png',
               startingBid: a.starting_bid,
               timeSeconds: a.time_seconds,
               pointsReward: a.points_reward,
@@ -254,24 +281,40 @@ export const gameApi = {
       }
     } catch {}
 
+    const localMatches = getLocalLineups();
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.from('lineup_matches').select('*').eq('is_active', true).order('sort_order');
         if (!error && data && data.length > 0) {
-          return data.map(m => ({
-            id: m.id,
-            title: m.title,
-            subtitle: m.subtitle,
-            stadium: m.stadium,
-            year: m.year,
-            teamA: m.team_a,
-            teamB: m.team_b,
-          }));
+          const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+          const byId = new Map();
+          const titleToId = new Map();
+          for (const m of localMatches) {
+            byId.set(m.id, m);
+            if (m.title) titleToId.set(norm(m.title), m.id);
+          }
+          for (const m of data) {
+            const targetId = byId.has(m.id) ? m.id : (titleToId.get(norm(m.title)) || m.id);
+            const prev = byId.get(targetId) || {};
+            byId.set(targetId, {
+              ...prev,
+              id: targetId,
+              title: m.title,
+              subtitle: m.subtitle,
+              stadium: m.stadium,
+              year: m.year,
+              competition: m.competition || prev.competition || 'بطولات كروية',
+              image: m.image || prev.image || 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/London_Wembley.jpg/960px-London_Wembley.jpg',
+              teamA: m.team_a,
+              teamB: m.team_b,
+            });
+          }
+          return Array.from(byId.values());
         }
       } catch {}
     }
 
-    return getLocalLineups();
+    return localMatches;
   },
 
   // 8. Mafia Roles

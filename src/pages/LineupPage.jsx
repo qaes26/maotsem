@@ -1,8 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import gameApi from '../services/gameApi';
-import { FaFutbol, FaHome, FaRedo } from 'react-icons/fa';
+import { FALLBACK_CATEGORY_IMAGE } from './GameSetupPage';
+import {
+  FaFutbol,
+  FaHome,
+  FaRedo,
+  FaSearch,
+  FaRandom,
+  FaChevronRight,
+  FaChevronLeft,
+  FaEye,
+  FaEyeSlash,
+} from 'react-icons/fa';
 
 export default function LineupPage() {
   const navigate = useNavigate();
@@ -13,13 +24,18 @@ export default function LineupPage() {
   const [currentTurn, setCurrentTurn] = useState('team1'); // 'team1' | 'team2'
   const [scores, setScores] = useState({ team1: 0, team2: 0 });
 
+  // Catalog filter / search UI for 70+ historical lineups
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCompetition, setSelectedCompetition] = useState('الكل');
+  const [showCatalog, setShowCatalog] = useState(true);
+
   // Selected player on pitch
   const [activePlayer, setActivePlayer] = useState(null);
   const [revealedPlayers, setRevealedPlayers] = useState(new Map());
   const [selectedClub, setSelectedClub] = useState(null);
   const [showResult, setShowResult] = useState(false);
 
-  // Fetch matches
+  // Fetch all 70+ lineup matches
   useEffect(() => {
     gameApi.getLineups().then((data) => {
       if (data && data.length > 0) {
@@ -28,6 +44,62 @@ export default function LineupPage() {
       }
     });
   }, []);
+
+  const competitions = useMemo(() => {
+    const unique = Array.from(new Set(matches.map((m) => m.competition).filter(Boolean)));
+    return ['الكل', ...unique];
+  }, [matches]);
+
+  const filteredMatches = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return matches.filter((m) => {
+      const compOk = selectedCompetition === 'الكل' || m.competition === selectedCompetition;
+      if (!compOk) return false;
+      if (!q) return true;
+      const haystack = [
+        m.title,
+        m.subtitle,
+        m.stadium,
+        String(m.year || ''),
+        m.competition,
+        m.teamA?.name,
+        m.teamB?.name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [matches, selectedCompetition, searchQuery]);
+
+  const handleSelectMatch = (match) => {
+    if (!match) return;
+    setSelectedMatch(match);
+    setRevealedPlayers(new Map());
+    setActivePlayer(null);
+    setSelectedClub(null);
+    setShowResult(false);
+    setActiveTeamSide('teamA');
+  };
+
+  const handlePickRandomMatch = () => {
+    const pool = filteredMatches.length > 0 ? filteredMatches : matches;
+    if (pool.length === 0) return;
+    if (pool.length === 1) {
+      handleSelectMatch(pool[0]);
+      return;
+    }
+    const candidates = pool.filter((m) => m.id !== selectedMatch?.id);
+    const picked = candidates[Math.floor(Math.random() * candidates.length)];
+    handleSelectMatch(picked);
+  };
+
+  const handleStepMatch = (delta) => {
+    if (!selectedMatch || matches.length === 0) return;
+    const idx = matches.findIndex((m) => m.id === selectedMatch.id);
+    const nextIdx = (idx + delta + matches.length) % matches.length;
+    handleSelectMatch(matches[nextIdx]);
+  };
 
   const handleSelectPlayer = (player, side) => {
     const key = `${selectedMatch.id}-${side}-${player.number}-${player.name}`;
@@ -71,6 +143,8 @@ export default function LineupPage() {
   const handleResetMatch = () => {
     setRevealedPlayers(new Map());
     setActivePlayer(null);
+    setSelectedClub(null);
+    setShowResult(false);
     setScores({ team1: 0, team2: 0 });
     setCurrentTurn('team1');
   };
@@ -83,6 +157,7 @@ export default function LineupPage() {
     );
   }
 
+  const currentMatchIndex = Math.max(0, matches.findIndex((m) => m.id === selectedMatch.id));
   const currentDisplayTeam = activeTeamSide === 'teamA' ? selectedMatch.teamA : selectedMatch.teamB;
   const totalMatchPlayers =
     (selectedMatch.teamA?.players?.length || 0) + (selectedMatch.teamB?.players?.length || 0);
@@ -97,25 +172,32 @@ export default function LineupPage() {
             <FaFutbol />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-white">تحدي "تشكيلة"</h1>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                من أي نادٍ انتقل اللاعب؟
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-black text-white">تحدي &quot;تشكيلة&quot;</h1>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ⚽ {matches.length} تشكيلة تاريخية بصور حقيقية
               </span>
             </div>
-            <p className="text-xs text-white/50">
-              اختر لاعباً من تشكيلة المباراة وخمّن النادي الذي كان يلعب له مباشرة قبل هذا النادي
+            <p className="text-xs text-white/55">
+              اختر أي مباراة تاريخية ثم اختر لاعباً وخمّن النادي الذي انتقل منه مباشرة قبل هذه المباراة
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handlePickRandomMatch}
+            className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black text-xs font-black flex items-center gap-1.5 transition-all border border-emerald-500/40"
+          >
+            <FaRandom />
+            <span>تشكيلة عشوائية</span>
+          </button>
           <button
             onClick={handleResetMatch}
             className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all border border-white/10"
           >
             <FaRedo />
-            <span>إعادة المباراة</span>
+            <span>إعادة النتيجة</span>
           </button>
           <button
             onClick={() => navigate('/')}
@@ -127,35 +209,215 @@ export default function LineupPage() {
         </div>
       </div>
 
-      {/* Match Selector Tabs */}
-      <div className="flex flex-wrap gap-2">
-        {matches.map((m) => (
+      {/* 70 Lineups Browser Panel with Photos & Filters */}
+      <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/10 space-y-4">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <FaSearch className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 text-sm" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`ابحث في ${matches.length} تشكيلة بالاسم، الفريق، الملعب، أو السنة (مثال: 2005، الكلاسيكو، الهلال...)`}
+              className="w-full pr-10 pl-4 py-2.5 rounded-2xl bg-black/30 border border-white/15 text-xs sm:text-sm text-white placeholder-white/40 focus:outline-none focus:border-emerald-400"
+            />
+          </div>
+
           <button
-            key={m.id}
-            onClick={() => {
-              setSelectedMatch(m);
-              setRevealedPlayers(new Map());
-              setActivePlayer(null);
-            }}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border ${
-              selectedMatch.id === m.id
-                ? 'bg-emerald-500 text-black border-emerald-400 shadow-lg'
-                : 'bg-white/5 hover:bg-white/10 text-white/70 border-white/10'
-            }`}
+            onClick={() => setShowCatalog((v) => !v)}
+            className="px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white/80 flex items-center justify-center gap-2 transition-all"
           >
-            {m.title}
+            {showCatalog ? <FaEyeSlash /> : <FaEye />}
+            <span>
+              {showCatalog
+                ? `إخفاء قائمة التشكيلات (${filteredMatches.length})`
+                : `استعراض التشكيلات (${filteredMatches.length} من ${matches.length})`}
+            </span>
           </button>
-        ))}
+        </div>
+
+        {/* Competition Filters */}
+        <div className="flex flex-wrap gap-2">
+          {competitions.map((comp) => {
+            const count =
+              comp === 'الكل'
+                ? matches.length
+                : matches.filter((m) => m.competition === comp).length;
+            const active = selectedCompetition === comp;
+            return (
+              <button
+                key={comp}
+                onClick={() => {
+                  setSelectedCompetition(comp);
+                  setShowCatalog(true);
+                }}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                  active
+                    ? 'bg-emerald-500 text-black border-emerald-400 shadow-md'
+                    : 'bg-white/5 hover:bg-white/10 text-white/70 border-white/10'
+                }`}
+              >
+                <span>{comp}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+                    active ? 'bg-black/20 text-black' : 'bg-white/10 text-white/60'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Visual Grid of Lineup Cards with Photos */}
+        {showCatalog && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[340px] overflow-y-auto pl-1 pt-1">
+            {filteredMatches.length === 0 ? (
+              <div className="col-span-full py-8 text-center text-white/50 text-sm">
+                لا توجد تشكيلات مطابقة لبحثك. جرّب كلمة أخرى أو اختر &quot;الكل&quot;.
+              </div>
+            ) : (
+              filteredMatches.map((m) => {
+                const isSelected = selectedMatch.id === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => handleSelectMatch(m)}
+                    className={`group text-right rounded-2xl overflow-hidden border-2 transition-all flex flex-col bg-slate-900/70 ${
+                      isSelected
+                        ? 'border-emerald-400 ring-2 ring-emerald-400/40 shadow-lg shadow-emerald-500/20'
+                        : 'border-white/10 hover:border-emerald-400/50'
+                    }`}
+                  >
+                    <div className="relative h-24 w-full overflow-hidden">
+                      <img
+                        src={m.image || FALLBACK_CATEGORY_IMAGE}
+                        alt={m.title}
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_CATEGORY_IMAGE;
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent" />
+                      <div className="absolute top-2 right-2 flex items-center gap-1">
+                        {m.year && (
+                          <span className="px-2 py-0.5 rounded-full bg-black/75 text-amber-300 font-mono font-bold text-[10px] border border-white/10">
+                            {m.year}
+                          </span>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-emerald-500 text-black font-black text-[10px]">
+                          نشطة ✓
+                        </span>
+                      )}
+                      <div className="absolute bottom-1.5 right-2 left-2 flex items-center justify-between text-[10px] text-white/85 font-bold">
+                        <span className="truncate">{m.competition || 'تحدي تشكيلة'}</span>
+                        <span>
+                          {m.teamA?.logo} vs {m.teamB?.logo}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 space-y-1 flex-1 flex flex-col justify-between w-full">
+                      <div className="font-black text-xs text-white line-clamp-1">{m.title}</div>
+                      <div className="text-[11px] text-white/60 line-clamp-1">{m.subtitle}</div>
+                      {m.stadium && (
+                        <div className="text-[10px] text-emerald-300/80 line-clamp-1">
+                          🏟️ {m.stadium}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Selected Match Hero Card Banner */}
+      <div className="relative rounded-3xl overflow-hidden border-2 border-emerald-500/35 shadow-2xl">
+        <div className="relative h-48 sm:h-56 w-full">
+          <img
+            src={selectedMatch.image || FALLBACK_CATEGORY_IMAGE}
+            alt={selectedMatch.title}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = FALLBACK_CATEGORY_IMAGE;
+            }}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-950/30" />
+
+          {/* Quick Prev/Next Match Controls */}
+          <div className="absolute top-3 left-3 flex items-center gap-2">
+            <button
+              onClick={() => handleStepMatch(-1)}
+              className="p-2 rounded-xl bg-black/65 hover:bg-emerald-500 text-white hover:text-black border border-white/15 transition-all"
+              title="التشكيلة السابقة"
+            >
+              <FaChevronRight />
+            </button>
+            <span className="px-3 py-1 rounded-xl bg-black/70 text-xs font-mono font-bold text-emerald-300 border border-white/15">
+              {currentMatchIndex + 1} / {matches.length}
+            </span>
+            <button
+              onClick={() => handleStepMatch(1)}
+              className="p-2 rounded-xl bg-black/65 hover:bg-emerald-500 text-white hover:text-black border border-white/15 transition-all"
+              title="التشكيلة التالية"
+            >
+              <FaChevronLeft />
+            </button>
+          </div>
+
+          <div className="absolute top-3 right-3 flex items-center gap-2 flex-wrap">
+            {selectedMatch.competition && (
+              <span className="px-3 py-1 rounded-full bg-emerald-500 text-black text-xs font-black shadow">
+                {selectedMatch.competition}
+              </span>
+            )}
+            {selectedMatch.year && (
+              <span className="px-3 py-1 rounded-full bg-black/70 text-amber-300 text-xs font-mono font-bold border border-amber-400/30">
+                {selectedMatch.year}
+              </span>
+            )}
+          </div>
+
+          <div className="absolute bottom-4 right-4 left-4 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+            <div className="space-y-1">
+              <h2 className="text-xl sm:text-3xl font-black text-white drop-shadow">
+                {selectedMatch.title}
+              </h2>
+              <p className="text-xs sm:text-sm text-white/80 font-semibold">
+                {selectedMatch.subtitle}
+              </p>
+              {selectedMatch.stadium && (
+                <div className="text-xs text-emerald-300 font-bold">
+                  🏟️ {selectedMatch.stadium}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15 text-xs font-black self-start sm:self-auto">
+              <span>{selectedMatch.teamA?.logo} {selectedMatch.teamA?.name}</span>
+              <span className="text-emerald-400">VS</span>
+              <span>{selectedMatch.teamB?.name} {selectedMatch.teamB?.logo}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Scoreboard and Turn Indicator */}
       <div className="grid grid-cols-2 gap-4">
         <div
-          className={`p-4 rounded-2xl glass-card border-2 transition-all ${
-            currentTurn === 'team1'
+          className={`p-4 rounded-2xl glass-card border-2 transition-all ${currentTurn === 'team1'
               ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
               : 'border-white/10 bg-white/5'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <div>
@@ -169,11 +431,10 @@ export default function LineupPage() {
         </div>
 
         <div
-          className={`p-4 rounded-2xl glass-card border-2 transition-all ${
-            currentTurn === 'team2'
+          className={`p-4 rounded-2xl glass-card border-2 transition-all ${currentTurn === 'team2'
               ? 'border-emerald-400 bg-emerald-400/10'
               : 'border-white/10 bg-white/5'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <div>
@@ -194,10 +455,10 @@ export default function LineupPage() {
             {scores.team1 > scores.team2
               ? 'فاز الفريق الأول!'
               : scores.team2 > scores.team1
-              ? 'فاز الفريق الثاني!'
-              : 'تعادل مثير بين الفريقين!'}
+                ? 'فاز الفريق الثاني!'
+                : 'تعادل مثير بين الفريقين!'}
           </div>
-          <p className="text-xs text-white/70">اختر مباراة أخرى من الأعلى أو أعد اللعب</p>
+          <p className="text-xs text-white/70">اختر مباراة أخرى من الـ {matches.length} تشكيلة أو انتقل للتالية</p>
         </div>
       )}
 
@@ -205,11 +466,10 @@ export default function LineupPage() {
       <div className="flex items-center justify-center gap-4 flex-wrap">
         <button
           onClick={() => setActiveTeamSide('teamA')}
-          className={`px-6 py-2.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 border ${
-            activeTeamSide === 'teamA'
+          className={`px-6 py-2.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 border ${activeTeamSide === 'teamA'
               ? 'bg-[var(--color-accent)] text-[var(--color-primary)] border-[var(--color-accent)] shadow-lg'
               : 'bg-white/5 hover:bg-white/10 text-white/70 border-white/10'
-          }`}
+            }`}
         >
           <span>{selectedMatch.teamA.logo}</span>
           <span>تشكيلة {selectedMatch.teamA.name} ({selectedMatch.teamA.formation})</span>
@@ -217,11 +477,10 @@ export default function LineupPage() {
 
         <button
           onClick={() => setActiveTeamSide('teamB')}
-          className={`px-6 py-2.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 border ${
-            activeTeamSide === 'teamB'
+          className={`px-6 py-2.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 border ${activeTeamSide === 'teamB'
               ? 'bg-emerald-500 text-black border-emerald-400 shadow-lg'
               : 'bg-white/5 hover:bg-white/10 text-white/70 border-white/10'
-          }`}
+            }`}
         >
           <span>{selectedMatch.teamB.logo}</span>
           <span>تشكيلة {selectedMatch.teamB.name} ({selectedMatch.teamB.formation})</span>
@@ -257,13 +516,12 @@ export default function LineupPage() {
                 whileTap={!revealed ? { scale: 0.95 } : {}}
                 disabled={!!revealed}
                 onClick={() => handleSelectPlayer(player, activeTeamSide)}
-                className={`p-4 rounded-2xl border-2 transition-all text-center flex flex-col items-center justify-between min-h-[110px] ${
-                  revealed
+                className={`p-4 rounded-2xl border-2 transition-all text-center flex flex-col items-center justify-between min-h-[110px] ${revealed
                     ? revealed.isCorrect
                       ? 'bg-emerald-500/30 border-emerald-400 text-emerald-200'
                       : 'bg-red-500/30 border-red-400 text-red-200'
                     : 'bg-black/50 hover:bg-black/70 border-white/20 hover:border-[var(--color-accent)] text-white shadow-lg'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between w-full">
                   <span className="w-7 h-7 rounded-full bg-white/10 font-mono font-bold text-xs flex items-center justify-center">
@@ -305,18 +563,29 @@ export default function LineupPage() {
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.85, opacity: 0 }}
-              className="w-full max-w-md glass-card rounded-3xl border-2 border-emerald-500/40 p-6 space-y-6 shadow-2xl text-center"
+              className="w-full max-w-md glass-card rounded-3xl border-2 border-emerald-500/40 p-6 space-y-5 shadow-2xl text-center"
             >
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center text-3xl">
-                <FaFutbol />
+              <div className="relative h-24 rounded-2xl overflow-hidden border border-white/10">
+                <img
+                  src={selectedMatch.image || FALLBACK_CATEGORY_IMAGE}
+                  alt={selectedMatch.title}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_CATEGORY_IMAGE;
+                  }}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent flex items-end justify-between p-3">
+                  <span className="text-[11px] font-bold text-white truncate">{selectedMatch.title}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[10px] font-black">
+                    #{activePlayer.number} • {activePlayer.position}
+                  </span>
+                </div>
               </div>
 
               <div>
-                <span className="text-xs text-white/60 font-bold block mb-1">
-                  رقم {activePlayer.number} • {activePlayer.position}
-                </span>
                 <h2 className="text-2xl font-black text-white">{activePlayer.name}</h2>
-                <p className="text-xs text-white/50 mt-1">
+                <p className="text-xs text-white/60 mt-1">
                   من أي نادٍ انتقل مباشرة قبل الانضمام لـ{' '}
                   <span className="text-emerald-400 font-bold">
                     {activePlayer.side === 'teamA' ? selectedMatch.teamA.name : selectedMatch.teamB.name}
@@ -353,11 +622,10 @@ export default function LineupPage() {
               {showResult && (
                 <div className="space-y-4 pt-2">
                   <div
-                    className={`p-3 rounded-2xl text-xs font-bold ${
-                      selectedClub === activePlayer.prevClub
+                    className={`p-3 rounded-2xl text-xs font-bold ${selectedClub === activePlayer.prevClub
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    }`}
+                      }`}
                   >
                     {selectedClub === activePlayer.prevClub
                       ? '🎉 إجابة صحيحة! +100 نقطة'

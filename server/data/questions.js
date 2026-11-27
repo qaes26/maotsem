@@ -2,6 +2,143 @@
 // Comprehensive, verified Arabic content for all rounds and tournament modes
 
 import { generateMathQuestion, generateArabicRootQuestion } from './questionGenerator.js';
+import { getAll70Lineups } from './lineups70.js';
+
+const IMG = {
+  oldTrafford: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/2023_07_31_arne_mueseler_00060-Verbessert-RR_%2853106651455%29.jpg/960px-2023_07_31_arne_mueseler_00060-Verbessert-RR_%2853106651455%29.jpg',
+  anfield: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f8/Liverpool_anfield_road_stadium.jpg/960px-Liverpool_anfield_road_stadium.jpg',
+  emirates: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/London_Emirates_Stadium_arsenal.jpg/960px-London_Emirates_Stadium_arsenal.jpg',
+  stamford: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/London_Stamford_Bridge.jpg/960px-London_Stamford_Bridge.jpg',
+  etihad: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/City_of_Manchester_Stadium_2023_cropped.jpg/960px-City_of_Manchester_Stadium_2023_cropped.jpg',
+  wembley: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/London_Wembley.jpg/960px-London_Wembley.jpg',
+  campNou: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Camp_Nou_aerial.jpg/960px-Camp_Nou_aerial.jpg',
+  bernabeu: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Estadio_Santiago_Bernab%C3%A9u_%E2%80%94_Real_Madrid_Juvenil_A_-_Santiago_Wanderers_Sub-20_%28Intercontinental_Sub-20_2026%29_%E2%80%94_R%C3%A9cord_de_asistencia_en_un_partido_de_juveniles.jpg/960px-thumbnail.jpg',
+  clasico: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Final_SuperCopa_ESP_2011_%286056383408%29.jpg/960px-Final_SuperCopa_ESP_2011_%286056383408%29.jpg',
+  ucl: 'https://thumb.wikimedia.org/wikipedia/en/thumb/f/f5/UEFA_Champions_League.svg/960px-UEFA_Champions_League.svg.png',
+  istanbul: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Istanbul_Atat%C3%BCrk_Olympic_Stadium_1.jpg/960px-Istanbul_Atat%C3%BCrk_Olympic_Stadium_1.jpg',
+  lusail: 'https://thumb.wikimedia.org/wikipedia/en/thumb/a/a5/17_11_2021_-_Visita_ao_Est%C3%A1dio_Lusail_%2851688270420%29.jpg/960px-17_11_2021_-_Visita_ao_Est%C3%A1dio_Lusail_%2851688270420%29.jpg',
+  wcTrophy: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/FIFA_World_Cup_Trophy_photo_by_Djuradj_Vujcic.jpg',
+  maracana: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Maracana_2022.jpg/960px-Maracana_2022.jpg',
+  berlin: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5c/Olympiastadion_Berlin-Marathontor-msu-2020-3139.jpg/960px-Olympiastadion_Berlin-Marathontor-msu-2020-3139.jpg',
+  ronaldo: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/Cristiano_Ronaldo_Croatia_v_Portugal_2_July_2026-075_%28cropped%29.jpg/960px-Cristiano_Ronaldo_Croatia_v_Portugal_2_July_2026-075_%28cropped%29.jpg',
+  messi: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg/960px-Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg',
+  sanSiro: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Stadio_Meazza_2021_3.jpg/960px-Stadio_Meazza_2021_3.jpg',
+  juventus: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/2021%E2%80%9322_UEFA_Women%27s_Champions_League_Final_in_Turin%2C_Italy_1.jpg/960px-2021%E2%80%9322_UEFA_Women%27s_Champions_League_Final_in_Turin%2C_Italy_1.jpg',
+  allianz: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Allianz_Arena_2008-02-09.jpg/960px-Allianz_Arena_2008-02-09.jpg',
+  dortmund: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Signal_iduna_park_stadium_dortmund_4.jpg/960px-Signal_iduna_park_stadium_dortmund_4.jpg',
+  guardiola: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/60/Josep_Guardiola_2023-10-04_Fu%C3%9Fball%2C_M%C3%A4nner%2C_UEFA_Champions_League%2C_RB_Leipzig_-_Manchester_City_FC_1DX_2797_%28cropped%29.jpg/960px-Josep_Guardiola_2023-10-04_Fu%C3%9Fball%2C_M%C3%A4nner%2C_UEFA_Champions_League%2C_RB_Leipzig_-_Manchester_City_FC_1DX_2797_%28cropped%29.jpg',
+  mourinho: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Jos%C3%A9_Mourinho_20250206_%281%29.jpg/960px-Jos%C3%A9_Mourinho_20250206_%281%29.jpg',
+  ancelotti: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/Carlo_Ancelotti_Brazil_V_Morocco_13_June_2026-47.jpg/960px-Carlo_Ancelotti_Brazil_V_Morocco_13_June_2026-47.jpg',
+  damascus: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Damascus%2C_Syria%2C_Panoramic_view_of_Damascus.jpg/960px-Damascus%2C_Syria%2C_Panoramic_view_of_Damascus.jpg',
+  tvStudio: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=600&q=80',
+  titanic: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/RMS_Titanic_3_%28cropped_to_ship%29.jpg/960px-RMS_Titanic_3_%28cropped_to_ship%29.jpg',
+  cinema: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80',
+  hollywood: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Hollywood_sign_%288485145044%29.jpg/960px-Hollywood_sign_%288485145044%29.jpg',
+  canberra: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cc/Canberra_panorama_from_Mount_Ainslie.jpg/960px-Canberra_panorama_from_Mount_Ainslie.jpg',
+  jupiter: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Jupiter_OPAL_2024.png/960px-Jupiter_OPAL_2024.png',
+  yen: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/500_yen_bicolor_clad_coin_obverse.jpg/960px-500_yen_bicolor_clad_coin_obverse.jpg',
+  basketball: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/USA_vs._China_Mens_Basketball_-_Beijing_2008_Olympic_Games_%282751923597%29.jpg/960px-USA_vs._China_Mens_Basketball_-_Beijing_2008_Olympic_Games_%282751923597%29.jpg',
+  bolt: 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Usain_Bolt_smiling_Berlin_2009.JPG',
+  novak: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Novak_Djokovic_Paris_2024_Olympic_Games_%28cropped%29.jpg/960px-Novak_Djokovic_Paris_2024_Olympic_Games_%28cropped%29.jpg',
+  chanel: 'https://upload.wikimedia.org/wikipedia/commons/2/22/Coco_Chanel_in_Los_Angeles%2C_1931_%28cropped%29.jpg',
+  cosmetics: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
+  ruby: 'https://upload.wikimedia.org/wikipedia/commons/1/17/Corundum-215330.jpg',
+  fashion: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=600&q=80',
+  math: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80',
+  chess: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/ChessSet.jpg',
+  calligraphy: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Ibn_al-Bawwab_-_Qur%CA%BEan_f._278v-279r.jpg/960px-Ibn_al-Bawwab_-_Qur%CA%BEan_f._278v-279r.jpg',
+  books: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80',
+  pen: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Fountain_pen_writing_%28literacy%29.jpg/960px-Fountain_pen_writing_%28literacy%29.jpg',
+  globe: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/The_Great_Globe%2C_Guyot_Hall%2C_Princeton_University.jpg/960px-The_Great_Globe%2C_Guyot_Hall%2C_Princeton_University.jpg',
+  soccerBall: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=600&q=80',
+};
+
+const QUESTION_MEDIA_BY_ID = {
+  'epl-1': IMG.soccerBall,
+  'epl-2': IMG.wembley,
+  'epl-3': IMG.etihad,
+  'epl-4': IMG.etihad,
+  'epl-5': IMG.emirates,
+  'epl-6': IMG.stamford,
+  'epl-7': IMG.oldTrafford,
+  'epl-8': IMG.anfield,
+  'laliga-1': IMG.campNou,
+  'laliga-2': IMG.soccerBall,
+  'laliga-3': IMG.campNou,
+  'laliga-4': IMG.clasico,
+  'laliga-5': IMG.bernabeu,
+  'laliga-6': IMG.clasico,
+  'ucl-1': IMG.bernabeu,
+  'ucl-2': IMG.ucl,
+  'ucl-3': IMG.istanbul,
+  'ucl-4': IMG.ucl,
+  'ucl-5': IMG.campNou,
+  'ucl-6': IMG.wembley,
+  'wc-1': IMG.lusail,
+  'wc-2': IMG.lusail,
+  'wc22-3': IMG.lusail,
+  'wc-3': IMG.wcTrophy,
+  'wc-4': IMG.berlin,
+  'wc-5': IMG.wcTrophy,
+  'wc-6': IMG.maracana,
+  'wc-7': IMG.wcTrophy,
+  'wc-8': IMG.soccerBall,
+  'cr7-1': IMG.ronaldo,
+  'cr7-2': IMG.ronaldo,
+  'cr7-3': IMG.ucl,
+  'messi-1': IMG.messi,
+  'messi-2': IMG.messi,
+  'messi-3': IMG.campNou,
+  'seriea-1': IMG.sanSiro,
+  'seriea-2': IMG.juventus,
+  'seriea-3': IMG.sanSiro,
+  'bundes-1': IMG.allianz,
+  'bundes-2': IMG.allianz,
+  'bundes-3': IMG.dortmund,
+  'coaches-1': IMG.mourinho,
+  'coaches-2': IMG.ancelotti,
+  'coaches-3': IMG.guardiola,
+  'series-1': IMG.damascus,
+  'series-2': IMG.damascus,
+  'series-3': IMG.damascus,
+  'series-4': IMG.damascus,
+  'series-5': IMG.tvStudio,
+  'series-ar-2': IMG.tvStudio,
+  'series-ar-3': IMG.tvStudio,
+  'series-6': IMG.titanic,
+  'movies-2': IMG.titanic,
+  'movies-3': IMG.cinema,
+  'series-7': IMG.hollywood,
+  'series-8': IMG.hollywood,
+  'series-gl-3': IMG.hollywood,
+  'gen-1': IMG.canberra,
+  'gen-2': IMG.jupiter,
+  'gen-3': IMG.yen,
+  'gen-4': IMG.basketball,
+  'gen-5': IMG.bolt,
+  'gen-6': IMG.novak,
+  'girls-1': IMG.chanel,
+  'girls-2': IMG.cosmetics,
+  'fashion-beauty-3': IMG.cosmetics,
+  'girls-3': IMG.ruby,
+  'girls-life-2': IMG.fashion,
+  'girls-life-3': IMG.cosmetics,
+  'math-1': IMG.math,
+  'math-3': IMG.math,
+  'math-mental-3': IMG.math,
+  'math-2': IMG.chess,
+  'puzzle-2': IMG.chess,
+  'puzzle-3': IMG.chess,
+  'arabic-1': IMG.calligraphy,
+  'arabic-3': IMG.calligraphy,
+  'arabic-plurals-3': IMG.calligraphy,
+  'arabic-2': IMG.books,
+  'roots-2': IMG.books,
+  'roots-3': IMG.books,
+  'arabic-4': IMG.pen,
+  'vocab-2': IMG.pen,
+  'vocab-3': IMG.pen,
+};
 
 export function getQuestions() {
   const baseQuestions = [
@@ -1146,7 +1283,15 @@ export function getQuestions() {
     }
   ];
 
-  return baseQuestions;
+  return baseQuestions.map((q) => {
+    const imgUrl = q.mediaUrl || q.image || QUESTION_MEDIA_BY_ID[q.id] || IMG.globe;
+    return {
+      ...q,
+      mediaType: q.mediaType || 'image',
+      mediaUrl: imgUrl,
+      image: imgUrl,
+    };
+  });
 }
 
 // ==========================================
@@ -1157,6 +1302,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-1',
       title: 'أندية حققت لقب دوري أبطال أوروبا',
+      image: IMG.ucl,
       description: 'كم نادياً أوروبياً فاز بلقب دوري أبطال أوروبا (التشامبيونز ليغ) يمكنك أنت وفريقك تسميته؟',
       hint: 'المجموع الكلي: 23 نادياً فازوا باللقب عبر التاريخ',
       startingBid: 3,
@@ -1172,6 +1318,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-2',
       title: 'لاعبون توجوا بالكرة الذهبية (Ballon d\'Or)',
+      image: IMG.messi,
       description: 'كم لاعباً في تاريخ كرة القدم فاز بجائزة الكرة الذهبية يمكنك تسميته؟',
       hint: 'من عام 1956 حتى اليوم',
       startingBid: 4,
@@ -1187,6 +1334,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-3',
       title: 'هدافو بطولات كأس العالم عبر التاريخ',
+      image: IMG.wcTrophy,
       description: 'كم لاعباً سجل 6 أهداف فأكثر في تاريخ بطولات كأس العالم يمكنك ذكره؟',
       hint: 'أساطير المونديال مثل كلوزه، رونالدو، ميسي، مبابي...',
       startingBid: 3,
@@ -1201,6 +1349,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-4',
       title: 'لاعبون ارتدوا قميص ريال مدريد وبرشلونة',
+      image: IMG.clasico,
       description: 'كم لاعباً مثل كلاً من الغريمين (ريال مدريد وبرشلونة) يمكنك تسميته؟',
       hint: 'من بينهم فيغو، رونالدو، إيتو، إنريكي...',
       startingBid: 3,
@@ -1214,6 +1363,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-5',
       title: 'مدربون حققوا لقب الدوري الإنجليزي الممتاز',
+      image: IMG.guardiola,
       description: 'كم مدرباً نجح في التتويج بلقب البريميرليغ منذ انطلاقه عام 1992؟',
       hint: 'المجموع الكلي: 11 مدرباً فقط في التاريخ!',
       startingBid: 3,
@@ -1227,6 +1377,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-6',
       title: 'منتخبات وصلت لنهائي كأس العالم',
+      image: IMG.lusail,
       description: 'كم منتخباً وطنياً نجح في خوض نهائي كأس العالم في تاريخ البطولة؟',
       hint: 'المجموع الكلي: 13 دولة فقط!',
       startingBid: 4,
@@ -1242,6 +1393,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-7',
       title: 'عواصم الدول العربية',
+      image: IMG.damascus,
       description: 'كم عاصمة عربية يمكنك أنت وفريقك تسميتها؟',
       hint: 'المجموع الكلي: 22 دولة عربية',
       startingBid: 5,
@@ -1257,6 +1409,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-8',
       title: 'أفلام فازت بأوسكار أفضل فيلم',
+      image: IMG.hollywood,
       description: 'كم فيلماً فاز بجائزة الأوسكار لأفضل فيلم يمكنك تسميته؟',
       hint: 'فكّر في أفلام شهيرة من هوليوود عبر العقود',
       startingBid: 3,
@@ -1273,6 +1426,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-9',
       title: 'مسلسلات عربية شهيرة',
+      image: IMG.tvStudio,
       description: 'كم مسلسلاً عربياً مشهوراً يمكنك أنت وفريقك تسميته؟',
       hint: 'فكّر في المسلسلات السورية والمصرية والخليجية الشهيرة',
       startingBid: 5,
@@ -1289,6 +1443,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-10',
       title: 'دول أوروبا وعواصمها',
+      image: IMG.globe,
       description: 'كم دولة أوروبية يمكنك تسميتها مع عاصمتها الصحيحة؟',
       hint: 'المجموع الكلي: أكثر من 40 دولة أوروبية',
       startingBid: 5,
@@ -1308,6 +1463,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-11',
       title: 'ماركات أزياء وموضة عالمية',
+      image: IMG.fashion,
       description: 'كم ماركة أزياء وموضة عالمية شهيرة يمكنك تسميتها؟',
       hint: 'فكّر في الماركات الفاخرة والشائعة',
       startingBid: 4,
@@ -1324,6 +1480,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-12',
       title: 'حيوانات مذكورة في القرآن الكريم',
+      image: IMG.calligraphy,
       description: 'كم حيواناً ذُكر في القرآن الكريم يمكنك تسميته؟',
       hint: 'فكّر في سور القرآن المسماة بأسماء حيوانات وقصص الأنبياء',
       startingBid: 4,
@@ -1340,6 +1497,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-13',
       title: 'أنبياء ورسل مذكورون في القرآن',
+      image: IMG.books,
       description: 'كم نبياً ورسولاً ذُكر بالاسم في القرآن الكريم يمكنك تسميته؟',
       hint: 'المجموع الكلي: 25 نبياً مذكورين بالاسم',
       startingBid: 5,
@@ -1355,6 +1513,7 @@ export function getAuctionChallenges() {
     {
       id: 'auc-14',
       title: 'شخصيات كرتونية من طفولتنا',
+      image: IMG.cinema,
       description: 'كم شخصية كرتونية عربية أو مدبلجة من أيام الطفولة يمكنك تسميتها؟',
       hint: 'فكّر في سبيستون وكرتون نتورك وقنوات الأطفال',
       startingBid: 5,
@@ -1643,140 +1802,10 @@ export function getCharadesCards() {
 }
 
 // ==========================================
-// 16. تشكيلة (Lineup Challenge Matches - 6 Classic Finals)
+// 16. تشكيلة (70 مباراة تاريخية من lineups70.js)
 // ==========================================
 export function getLineupMatches() {
-  return [
-    {
-      id: 'match-ucl-2017',
-      title: 'نهائي دوري أبطال أوروبا 2017',
-      subtitle: 'ريال مدريد (4) - (1) يوفنتوس',
-      stadium: 'ملعب الألفية - كارديف',
-      year: 2017,
-      teamA: {
-        name: 'ريال مدريد',
-        formation: '4-3-1-2',
-        logo: '👑',
-        players: [
-          { number: 1, name: 'كيلور نافاس', position: 'GK', prevClub: 'ليفانتي', options: ['ليفانتي', 'ألباسيتي', 'سابريسا', 'خيتافي'] },
-          { number: 2, name: 'داني كارفاخال', position: 'RB', prevClub: 'باير ليفركوزن', options: ['باير ليفركوزن', 'إسبانيول', 'فالنسيا', 'خيتافي'] },
-          { number: 4, name: 'سيرجيو راموس', position: 'CB', prevClub: 'إشبيلية', options: ['إشبيلية', 'بيتيس', 'ملقة', 'أتلتيكو مدريد'] },
-          { number: 5, name: 'رافاييل فاران', position: 'CB', prevClub: 'لانس الفرنسي', options: ['لانس الفرنسي', 'ليل', 'موناكو', 'ليون'] },
-          { number: 12, name: 'مارسيلو', position: 'LB', prevClub: 'فلومينينسي', options: ['فلومينينسي', 'فلامنغو', 'سانتوس', 'كورينثيانز'] },
-          { number: 14, name: 'كاسيميرو', position: 'DM', prevClub: 'بورتو البرتغالي', options: ['بورتو البرتغالي', 'ساو باولو', 'بنفيكا', 'سانتوس'] },
-          { number: 8, name: 'توني كروس', position: 'CM', prevClub: 'بايرن ميونخ', options: ['بايرن ميونخ', 'باير ليفركوزن', 'دورتموند', 'بريمن'] },
-          { number: 19, name: 'لوكا مودريتش', position: 'CM', prevClub: 'توتنهام هوتسبير', options: ['توتنهام هوتسبير', 'دينامو زغرب', 'أرسنال', 'تشيلسي'] },
-          { number: 22, name: 'إيسكو', position: 'AM', prevClub: 'ملقة الإسباني', options: ['ملقة الإسباني', 'فالنسيا', 'فياريال', 'إشبيلية'] },
-          { number: 9, name: 'كريم بنزيما', position: 'ST', prevClub: 'أولمبيك ليون', options: ['أولمبيك ليون', 'مارسيليا', 'بوردو', 'موناكو'] },
-          { number: 7, name: 'كريستيانو رونالدو', position: 'ST', prevClub: 'مانشستر يونايتد', options: ['مانشستر يونايتد', 'سبورتينغ لشبونة', 'يوفنتوس', 'أرسنال'] }
-        ]
-      },
-      teamB: {
-        name: 'يوفنتوس',
-        formation: '4-2-3-1',
-        logo: '⚪⚫',
-        players: [
-          { number: 1, name: 'جانلويجي بوفون', position: 'GK', prevClub: 'بارما', options: ['بارما', 'فيورنتينا', 'جنوى', 'سامبدوريا'] },
-          { number: 23, name: 'داني ألفيس', position: 'RB', prevClub: 'برشلونة', options: ['برشلونة', 'إشبيلية', 'باريس سان جيرمان', 'باهيا'] },
-          { number: 19, name: 'ليوناردو بونوتشي', position: 'CB', prevClub: 'باري الإيطالي', options: ['باري الإيطالي', 'إنتر ميلان', 'ميلان', 'بيسكارا'] },
-          { number: 3, name: 'جورجيو كيلليني', position: 'CB', prevClub: 'فيورنتينا', options: ['فيورنتينا', 'ليفورنو', 'روما', 'لاتسيو'] },
-          { number: 12, name: 'أليكس ساندرو', position: 'LB', prevClub: 'بورتو البرتغالي', options: ['بورتو البرتغالي', 'سانتوس', 'بنفيكا', 'ساو باولو'] },
-          { number: 5, name: 'ميراليم بيانيتش', position: 'CM', prevClub: 'روما', options: ['روما', 'ليون', 'ميتز', 'يوفنتوس'] },
-          { number: 6, name: 'سامي خضيرة', position: 'CM', prevClub: 'ريال مدريد', options: ['ريال مدريد', 'شتوتغارت', 'شالكه', 'دورتموند'] },
-          { number: 17, name: 'ماريو ماندزوكيتش', position: 'LM', prevClub: 'أتلتيكو مدريد', options: ['أتلتيكو مدريد', 'بايرن ميونخ', 'فولفسبورغ', 'دينامو زغرب'] },
-          { number: 21, name: 'باولو ديبالا', position: 'AM', prevClub: 'باليرمو', options: ['باليرمو', 'إنستيتوتو', 'كاتانيا', 'سامبدوريا'] },
-          { number: 7, name: 'خوان كوادرادو', position: 'RM', prevClub: 'تشيلسي', options: ['تشيلسي', 'فيورنتينا', 'أودينيزي', 'ليتشي'] },
-          { number: 9, name: 'غونزالو هيغواين', position: 'ST', prevClub: 'نابولي', options: ['نابولي', 'ريال مدريد', 'ريفربليت', 'ميلان'] }
-        ]
-      }
-    },
-    {
-      id: 'match-wc-2022',
-      title: 'نهائي كأس العالم 2022',
-      subtitle: 'الأرجنتين (3) 4 - 2 (3) فرنسا',
-      stadium: 'استاد لوسيل - قطر',
-      year: 2022,
-      teamA: {
-        name: 'الأرجنتين',
-        formation: '4-3-3',
-        logo: '🇦🇷',
-        players: [
-          { number: 23, name: 'إيميليانو مارتينيز', position: 'GK', prevClub: 'أستون فيلا', options: ['أستون فيلا', 'أرسنال', 'خيتافي', 'ريدينغ'] },
-          { number: 26, name: 'ناهويل مولينا', position: 'RB', prevClub: 'أتلتيكو مدريد', options: ['أتلتيكو مدريد', 'أودينيزي', 'بوكا جونيورز', 'روزاريو'] },
-          { number: 13, name: 'كريستيان روميرو', position: 'CB', prevClub: 'توتنهام هوتسبير', options: ['توتنهام هوتسبير', 'أتالانتا', 'يوفنتوس', 'جنوى'] },
-          { number: 19, name: 'نيكولاس أوتاميندي', position: 'CB', prevClub: 'بنفيكا', options: ['بنفيكا', 'مانشستر سيتي', 'فالنسيا', 'بورتو'] },
-          { number: 3, name: 'نيكولاس تاليافيكو', position: 'LB', prevClub: 'ليون الفرنسي', options: ['ليون الفرنسي', 'أياكس أمستردام', 'إنديبندينتي', 'مورسيا'] },
-          { number: 7, name: 'رودريغو دي بول', position: 'CM', prevClub: 'أتلتيكو مدريد', options: ['أتلتيكو مدريد', 'أودينيزي', 'فالنسيا', 'راسينغ'] },
-          { number: 24, name: 'إنزو فيرنانديز', position: 'CM', prevClub: 'بنفيكا', options: ['بنفيكا', 'ريفربليت', 'ديفينسا', 'تشيلسي'] },
-          { number: 20, name: 'أليكسيس ماك أليستر', position: 'CM', prevClub: 'برايتون', options: ['برايتون', 'بوكا جونيورز', 'أرجنتينوس', 'ليفربول'] },
-          { number: 11, name: 'أنخيل دي ماريا', position: 'LW', prevClub: 'يوفنتوس', options: ['يوفنتوس', 'باريس سان جيرمان', 'مانشستر يونايتد', 'ريال مدريد'] },
-          { number: 9, name: 'جوليان ألفاريز', position: 'ST', prevClub: 'مانشستر سيتي', options: ['مانشستر سيتي', 'ريفربليت', 'أتلتيكو مدريد', 'ريال مدريد'] },
-          { number: 10, name: 'ليونيل ميسي', position: 'RW', prevClub: 'باريس سان جيرمان', options: ['باريس سان جيرمان', 'برشلونة', 'نيولز أولد بويز', 'إنتر ميامي'] }
-        ]
-      },
-      teamB: {
-        name: 'فرنسا',
-        formation: '4-3-3',
-        logo: '🇫🇷',
-        players: [
-          { number: 1, name: 'هوغو لوريس', position: 'GK', prevClub: 'توتنهام هوتسبير', options: ['توتنهام هوتسبير', 'ليون', 'نيس', 'مارسيليا'] },
-          { number: 5, name: 'جول كوندي', position: 'RB', prevClub: 'برشلونة', options: ['برشلونة', 'إشبيلية', 'بوردو', 'موناكو'] },
-          { number: 4, name: 'رافاييل فاران', position: 'CB', prevClub: 'مانشستر يونايتد', options: ['مانشستر يونايتد', 'ريال مدريد', 'لانس', 'باريس'] },
-          { number: 18, name: 'دايوت أوباميكانو', position: 'CB', prevClub: 'بايرن ميونخ', options: ['بايرن ميونخ', 'لايبزيغ', 'سالزبورغ', 'فالنسيان'] },
-          { number: 22, name: 'ثيو هيرنانديز', position: 'LB', prevClub: 'ميلان الإيطالي', options: ['ميلان الإيطالي', 'ريال مدريد', 'ريال سوسيداد', 'أتلتيكو مدريد'] },
-          { number: 8, name: 'أوريليان تشواميني', position: 'CM', prevClub: 'ريال مدريد', options: ['ريال مدريد', 'موناكو', 'بوردو', 'ليل'] },
-          { number: 14, name: 'أدريان رابيو', position: 'CM', prevClub: 'يوفنتوس', options: ['يوفنتوس', 'باريس سان جيرمان', 'تولوز', 'مارسيليا'] },
-          { number: 7, name: 'أنطوان غريزمان', position: 'AM', prevClub: 'أتلتيكو مدريد', options: ['أتلتيكو مدريد', 'برشلونة', 'ريال سوسيداد', 'ليون'] },
-          { number: 11, name: 'عثمان ديمبيلي', position: 'RW', prevClub: 'برشلونة', options: ['برشلونة', 'بوروسيا دورتموند', 'رين', 'باريس'] },
-          { number: 9, name: 'أوليفييه جيرو', position: 'ST', prevClub: 'ميلان الإيطالي', options: ['ميلان الإيطالي', 'تشيلسي', 'أرسنال', 'مونبلييه'] },
-          { number: 10, name: 'كيليان مبابي', position: 'LW', prevClub: 'باريس سان جيرمان', options: ['باريس سان جيرمان', 'موناكو', 'كليرفونتين', 'ريال مدريد'] }
-        ]
-      }
-    },
-    {
-      id: 'match-ucl-2011',
-      title: 'نهائي دوري أبطال أوروبا 2011',
-      subtitle: 'برشلونة (3) - (1) مانشستر يونايتد',
-      stadium: 'استاد ويمبلي - لندن',
-      year: 2011,
-      teamA: {
-        name: 'برشلونة',
-        formation: '4-3-3',
-        logo: '🔵🔴',
-        players: [
-          { number: 1, name: 'فيكتور فالديز', position: 'GK', prevClub: 'أكاديمية لاماسيا', options: ['أكاديمية لاماسيا', 'فياريال', 'إسبانيول', 'فالنسيا'] },
-          { number: 2, name: 'داني ألفيس', position: 'RB', prevClub: 'إشبيلية', options: ['إشبيلية', 'باهيا', 'فالنسيا', 'بيتيس'] },
-          { number: 3, name: 'جيرارد بيكيه', position: 'CB', prevClub: 'مانشستر يونايتد', options: ['مانشستر يونايتد', 'ريال سرقسطة', 'أرسنال', 'ليفربول'] },
-          { number: 14, name: 'خافيير ماسكيرانو', position: 'CB', prevClub: 'ليفربول', options: ['ليفربول', 'وست هام', 'كورينثيانز', 'ريفربليت'] },
-          { number: 22, name: 'إيريك أبيدال', position: 'LB', prevClub: 'أولمبيك ليون', options: ['أولمبيك ليون', 'موناكو', 'ليل', 'نيس'] },
-          { number: 16, name: 'سيرجيو بوسكيتس', position: 'DM', prevClub: 'برشلونة ب', options: ['برشلونة ب', 'جيمناستيك', 'ليفانتي', 'بادالونا'] },
-          { number: 6, name: 'تشافي هيرنانديز', position: 'CM', prevClub: 'أكاديمية لاماسيا', options: ['أكاديمية لاماسيا', 'تيراسا', 'إسبانيول', 'جيرونا'] },
-          { number: 8, name: 'أندريس إنييستا', position: 'CM', prevClub: 'أكاديمية لاماسيا', options: ['أكاديمية لاماسيا', 'ألباسيتي', 'فياريال', 'فالنسيا'] },
-          { number: 17, name: 'بيدرو رودريغيز', position: 'RW', prevClub: 'برشلونة ب', options: ['برشلونة ب', 'تينيريفي', 'خيتافي', 'إسبانيول'] },
-          { number: 7, name: 'دافيد فيا', position: 'LW', prevClub: 'فالنسيا', options: ['فالنسيا', 'ريال سرقسطة', 'سبورتينغ خيخون', 'أتلتيكو'] },
-          { number: 10, name: 'ليونيل ميسي', position: 'CF', prevClub: 'نيولز أولد بويز', options: ['نيولز أولد بويز', 'ريفربليت', 'بوكا جونيورز', 'روزاريو'] }
-        ]
-      },
-      teamB: {
-        name: 'مانشستر يونايتد',
-        formation: '4-4-2',
-        logo: '🔴',
-        players: [
-          { number: 1, name: 'إدوين فان دير سار', position: 'GK', prevClub: 'فولهام', options: ['فولهام', 'يوفنتوس', 'أياكس', 'فينورد'] },
-          { number: 20, name: 'فابيو دا سيلفا', position: 'RB', prevClub: 'فلومينينسي', options: ['فلومينينسي', 'سانتوس', 'ساو باولو', 'فلامنغو'] },
-          { number: 5, name: 'ريو فرديناند', position: 'CB', prevClub: 'ليدز يونايتد', options: ['ليدز يونايتد', 'وست هام', 'بورنموث', 'إيفرتون'] },
-          { number: 15, name: 'نيمانيا فيديتش', position: 'CB', prevClub: 'سبارتاك موسكو', options: ['سبارتاك موسكو', 'النجم الأحمر', 'سيسكا موسكو', 'دينامو'] },
-          { number: 3, name: 'باتريس إيفرا', position: 'LB', prevClub: 'موناكو', options: ['موناكو', 'نيس', 'مونزا', 'مارسيليا'] },
-          { number: 25, name: 'أنطونيو فالنسيا', position: 'RM', prevClub: 'ويغان أثلتيك', options: ['ويغان أثلتيك', 'فياريال', 'ريكرياتيفو', 'إل ناسيونال'] },
-          { number: 16, name: 'مايكل كاريك', position: 'CM', prevClub: 'توتنهام هوتسبير', options: ['توتنهام هوتسبير', 'وست هام', 'سويندون', 'برمنغهام'] },
-          { number: 11, name: 'ريان غيغز', position: 'CM', prevClub: 'مانشستر سيتي (أكاديمية)', options: ['مانشستر سيتي (أكاديمية)', 'سوانزي سيتي', 'كارديف سيتي', 'نيوبورت'] },
-          { number: 13, name: 'بارك جي سونغ', position: 'LM', prevClub: 'أيندهوفن الهولندي', options: ['أيندهوفن الهولندي', 'كيوتو سانغا', 'سول', 'فينورد'] },
-          { number: 10, name: 'واين روني', position: 'ST', prevClub: 'إيفرتون', options: ['إيفرتون', 'ليفربول', 'سلتيك', 'ليدز يونايتد'] },
-          { number: 14, name: 'خافيير هيرنانديز (تشيتشاريتو)', position: 'ST', prevClub: 'غوادالاخارا المكسيكي', options: ['غوادالاخارا المكسيكي', 'أمريكا المكسيكي', 'مونتيري', 'تيغريس'] }
-        ]
-      }
-    }
-  ];
+  return getAll70Lineups();
 }
 
 // ==========================================

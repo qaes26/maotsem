@@ -75,12 +75,54 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/game" element={<GameBoardPage />} />
-            <Route path="/lineup" element={<LineupPage />} />
-            <Route path="/mafia" element={<MafiaPage />} />
-            <Route path="/auction" element={<AuctionPage />} />
-            <Route path="/sketch" element={<SketchPage />} />
-            <Route path="/charades" element={<CharadesPage />} />
+            <Route
+              path="/game"
+              element={
+                <ProtectedRoute>
+                  <GameBoardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/lineup"
+              element={
+                <ProtectedRoute>
+                  <LineupPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mafia"
+              element={
+                <ProtectedRoute>
+                  <MafiaPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/auction"
+              element={
+                <ProtectedRoute>
+                  <AuctionPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sketch"
+              element={
+                <ProtectedRoute>
+                  <SketchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/charades"
+              element={
+                <ProtectedRoute>
+                  <CharadesPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

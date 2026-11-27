@@ -12,6 +12,7 @@ import {
 } from 'react-icons/fa';
 import sound from '../utils/soundEffects';
 import gameApi from '../services/gameApi';
+import { FALLBACK_CATEGORY_IMAGE } from './GameSetupPage';
 
 export default function AuctionPage() {
   const navigate = useNavigate();
@@ -244,14 +245,36 @@ export default function AuctionPage() {
 
       {/* Main Auction Container */}
       <div className="glass-card rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl space-y-6">
-        {/* Challenge Title Banner */}
-        <div className="text-center space-y-2 border-b border-white/10 pb-6">
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-300">
-            تحدي المزاد رقم {currentChallengeIndex + 1} من {challenges.length}
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-white">{activeChallenge.title}</h2>
-          <p className="text-sm text-white/70 max-w-xl mx-auto">{activeChallenge.description}</p>
-          <div className="text-xs text-amber-400/80 font-semibold">{activeChallenge.hint}</div>
+        {/* Challenge Visual Image + Title Banner */}
+        <div className="space-y-4 border-b border-white/10 pb-6">
+          <div className="relative h-44 sm:h-52 rounded-2xl overflow-hidden border border-amber-500/30 shadow-xl">
+            <img
+              src={activeChallenge.image || FALLBACK_CATEGORY_IMAGE}
+              alt={activeChallenge.title}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = FALLBACK_CATEGORY_IMAGE;
+              }}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent" />
+            <div className="absolute bottom-4 right-4 left-4 flex flex-col sm:flex-row sm:items-end justify-between gap-2 text-right">
+              <div>
+                <span className="inline-block text-[11px] font-bold px-3 py-1 rounded-full bg-amber-500 text-black mb-2">
+                  تحدي المزاد رقم {currentChallengeIndex + 1} من {challenges.length}
+                </span>
+                <h2 className="text-xl sm:text-3xl font-black text-white drop-shadow">{activeChallenge.title}</h2>
+              </div>
+              <span className="px-3 py-1 rounded-xl bg-black/65 border border-amber-400/40 text-amber-300 text-xs font-black self-start sm:self-auto">
+                الجائزة: +{activeChallenge.pointsReward || 500} نقطة
+              </span>
+            </div>
+          </div>
+
+          <div className="text-center space-y-1.5">
+            <p className="text-sm text-white/80 max-w-2xl mx-auto">{activeChallenge.description}</p>
+            <div className="text-xs text-amber-400/90 font-semibold">{activeChallenge.hint}</div>
+          </div>
         </div>
 
         {/* PHASE 1: BIDDING */}

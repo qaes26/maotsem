@@ -152,7 +152,7 @@ export default function LoginPage() {
             <div>
               <label className="text-xs font-bold text-gray-300 block mb-1.5 flex items-center gap-1.5">
                 <FaUser className="text-accent text-xs" />
-                <span>اسم المستخدم / اللقب (فريد ولا يتكرر) *</span>
+                <span>اسم المستخدم / اللقب (اسم واحد فقط لكل رقم ولا يتكرر) *</span>
               </label>
               <input
                 type="text"
@@ -162,7 +162,7 @@ export default function LoginPage() {
                 className="w-full bg-surface border border-surface-light rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition text-sm font-bold"
                 required
               />
-              <p className="text-[11px] text-gray-400 mt-1">هذا الاسم سيظهر للجميع في المباريات ولوحة المتصدرين</p>
+              <p className="text-[11px] text-amber-300/80 mt-1">🔒 يتم ربط هذا الاسم برقم هاتفك للأبد ولا يُسمح بالتسجيل باسم مختلف على نفس الرقم</p>
             </div>
 
             {/* Avatar Selector */}

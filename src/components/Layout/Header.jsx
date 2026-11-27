@@ -74,9 +74,9 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* Desktop Quick Nav Links */}
+        {/* Desktop Quick Nav Links (hidden until player signs in) */}
         <nav className="hidden lg:flex items-center gap-1.5 flex-1 justify-center max-w-2xl">
-          {!hiddenModes.includes('six-categories') && (
+          {isAuthenticated && !hiddenModes.includes('six-categories') && (
             <Link
               to="/game"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -90,7 +90,7 @@ export default function Header() {
             </Link>
           )}
 
-          {!hiddenModes.includes('auction') && (
+          {isAuthenticated && !hiddenModes.includes('auction') && (
             <Link
               to="/auction"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -104,7 +104,7 @@ export default function Header() {
             </Link>
           )}
 
-          {!hiddenModes.includes('lineup') && (
+          {isAuthenticated && !hiddenModes.includes('lineup') && (
             <Link
               to="/lineup"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -119,7 +119,7 @@ export default function Header() {
           )}
 
           {/* Modes Dropdown */}
-          {(!hiddenModes.includes('sketch') || !hiddenModes.includes('charades') || !hiddenModes.includes('mafia')) && (
+          {isAuthenticated && (!hiddenModes.includes('sketch') || !hiddenModes.includes('charades') || !hiddenModes.includes('mafia')) && (
             <div className="relative">
               <button
                 onClick={() => setModesDropdown(!modesDropdown)}
@@ -255,23 +255,25 @@ export default function Header() {
                 </div>
               )}
 
-              {/* Grid of game modes */}
-              <div className="grid grid-cols-2 gap-2 my-1">
-                {navModes.map((m) => {
-                  const Icon = m.icon;
-                  return (
-                    <Link
-                      key={m.path}
-                      to={m.path}
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/90 text-xs"
-                    >
-                      <Icon className={m.color} />
-                      <span className="font-semibold">{m.name}</span>
-                    </Link>
-                  );
-                })}
-              </div>
+              {/* Grid of game modes (only after sign in) */}
+              {isAuthenticated && (
+                <div className="grid grid-cols-2 gap-2 my-1">
+                  {navModes.map((m) => {
+                    const Icon = m.icon;
+                    return (
+                      <Link
+                        key={m.path}
+                        to={m.path}
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/90 text-xs"
+                      >
+                        <Icon className={m.color} />
+                        <span className="font-semibold">{m.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Auth */}
               <div className="border-t border-white/10 pt-3 flex flex-col gap-2">

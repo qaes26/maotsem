@@ -57,6 +57,17 @@ router.post('/login', async (req, res) => {
 
     // Case 1: Phone already exists (Returning user)
     if (existingByPhone) {
+      // STRICT RULE: One phone number can ONLY have ONE permanent username ("ممنوع حد يسجل عليه باسم مختلف")
+      if (
+        existingByPhone.nickname &&
+        existingByPhone.nickname.trim().toLowerCase() !== cleanNickname.toLowerCase()
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: `هذا الرقم مسجل مسبقاً باسم المستخدم "${existingByPhone.nickname}" فقط! يُمنع التسجيل باسم مختلف على نفس الرقم، يرجى الدخول باسمك المسجل أو استخدام رقم آخر.`,
+        });
+      }
+
       // Check if the requested nickname belongs to ANOTHER player
       if (existingByNick && existingByNick.phone !== cleanPhone) {
         return res.status(400).json({
@@ -65,10 +76,6 @@ router.post('/login', async (req, res) => {
         });
       }
 
-      // Update nickname if updated, update last login
-      if (existingByPhone.nickname !== cleanNickname) {
-        existingByPhone.nickname = cleanNickname;
-      }
       if (avatar) existingByPhone.avatar = avatar;
       existingByPhone.lastLoginAt = new Date().toISOString();
       await db.saveUser(existingByPhone);
@@ -284,7 +291,13 @@ router.put('/profile/:userId', async (req, res) => {
     return res.status(404).json({ success: false, message: 'المستخدم غير موجود' });
   }
 
-  if (nickname !== undefined) foundUser.nickname = nickname;
+  // Keep nickname locked 1-to-1 with phone number ("اسم واحد فقط لكل رقم")
+  if (nickname !== undefined && foundUser.nickname && foundUser.nickname.trim().toLowerCase() !== nickname.trim().toLowerCase()) {
+    return res.status(400).json({
+      success: false,
+      message: 'لا يمكن تغيير اسم المستخدم لأن كل رقم هاتف مرتبط باسم واحد فقط',
+    });
+  }
   if (avatar !== undefined) foundUser.avatar = avatar;
   if (points !== undefined) foundUser.points = points;
   if (gamesPlayed !== undefined) foundUser.gamesPlayed = gamesPlayed;

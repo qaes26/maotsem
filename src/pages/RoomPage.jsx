@@ -82,7 +82,7 @@ export default function RoomPage() {
           return;
         }
       }
-    } catch {}
+    } catch { }
 
     // 2. Direct Supabase Room Creation (Works 100% on Netlify)
     const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -155,7 +155,7 @@ export default function RoomPage() {
           return;
         }
       }
-    } catch {}
+    } catch { }
 
     // 2. Direct Supabase Room Lookup (Works 100% on Netlify)
     if (isSupabaseConfigured() && supabase) {
@@ -280,11 +280,10 @@ export default function RoomPage() {
           <div className="flex bg-[var(--color-surface)] p-1.5 rounded-2xl border border-white/10">
             <button
               onClick={() => setActiveTab('create')}
-              className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                activeTab === 'create'
+              className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'create'
                   ? 'gradient-accent text-[var(--color-primary)] shadow-md'
                   : 'text-white/60 hover:text-white'
-              }`}
+                }`}
             >
               <FaPlus />
               <span>إنشاء غرفة جديدة</span>
@@ -292,11 +291,10 @@ export default function RoomPage() {
 
             <button
               onClick={() => setActiveTab('join')}
-              className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                activeTab === 'join'
+              className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'join'
                   ? 'gradient-accent text-[var(--color-primary)] shadow-md'
                   : 'text-white/60 hover:text-white'
-              }`}
+                }`}
             >
               <FaSignInAlt />
               <span>الانضمام برمز</span>
@@ -529,4 +527,5 @@ export default function RoomPage() {
     </div>
   );
 }
+
 

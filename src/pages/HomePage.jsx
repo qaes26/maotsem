@@ -96,8 +96,8 @@ export default function HomePage() {
     {
       id: 'lineup',
       title: customTitles['lineup'] || 'تحدي "تشكيلة"',
-      subtitle: 'من أي نادٍ انتقل اللاعب؟',
-      description: 'تحدي كروي على أرضية الملعب! 22 لاعباً من أشهر النهائيات العالمية، احزر النادي السابق لكل لاعب قبل هذا النادي.',
+      subtitle: 'من أي نادٍ انتقل اللاعب؟ (70 تشكيلة)',
+      description: 'تحدي كروي بصور حقيقية على أرضية الملعب! 70 تشكيلة تاريخية من البطولات العالمية والعربية — احزر النادي السابق لكل لاعب.',
       icon: FaFutbol,
       badge: 'لعشاق التكتيك ⚽',
       gradient: 'from-emerald-500/20 via-green-600/10 to-transparent',
