@@ -5,7 +5,6 @@ import {
   FaPlay,
   FaRobot,
   FaUsers,
-  FaTrophy,
   FaCrown,
   FaFire,
   FaBolt,
@@ -17,10 +16,10 @@ import {
   FaGavel,
   FaPenNib,
   FaTheaterMasks,
-  FaMedal,
 } from 'react-icons/fa';
 import useAuthStore from '../stores/authStore';
 import useGameStore from '../stores/gameStore';
+import useThemeStore from '../stores/themeStore';
 import sound from '../utils/soundEffects';
 import LoginPage from './LoginPage';
 
@@ -28,6 +27,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
   const setGameMode = useGameStore((s) => s.setGameMode);
+  const theme = useThemeStore((s) => s.theme);
 
   // If not logged in, show the login screen before anything inside the game
   if (!isAuthenticated) {
@@ -36,7 +36,6 @@ export default function HomePage() {
 
   const handleStartMode = (mode, route) => {
     sound.playWhistle();
-    // Online multiplayer rooms require authenticated phone
     if (!isAuthenticated && route.startsWith('/room')) {
       navigate('/login');
       return;
@@ -45,28 +44,15 @@ export default function HomePage() {
     navigate(route);
   };
 
+  const hiddenModes = theme?.hiddenModes || [];
+  const customTitles = theme?.customModeTitles || {};
+
   const gameModes = [
     {
-      id: 'tournament',
-      title: 'بطولة هخلص عليك الكبرى',
-      subtitle: '5 جولات متتالية مع الأفرقة وتتويج البطل',
-      description: 'أقوى وضع تنافسي متكامل! يتنافس الفريقان عبر 5 جولات: لوحة الفئات، مزاد الكرة، سكتش الأهداف، التشكيلة، والتمثيل!',
-      icon: FaTrophy,
-      badge: 'النظام الشامل الخارق 🏆',
-      gradient: 'from-amber-500/25 via-yellow-600/15 to-amber-950/20',
-      borderColor: 'border-[var(--color-accent)]',
-      textColor: 'text-[var(--color-accent)]',
-      buttonBg: 'gradient-accent',
-      buttonText: 'text-[var(--color-primary)]',
-      route: '/tournament',
-      mode: 'tournament',
-      featured: true,
-    },
-    {
       id: 'six-categories',
-      title: 'لوحة الـ 6 فئات',
+      title: customTitles['six-categories'] || 'لوحة الـ 6 فئات',
       subtitle: 'الوضع الكلاسيكي (18 سؤالاً)',
-      description: 'اختر 6 فئات وتنافس في لوحة من 18 سؤالاً متدرجة (200، 400، 600) مع خطوط النجاة الـ 6 وخاصية الحفرة والقنبلة!',
+      description: 'اختر 6 فئات بصور حقيقية وتنافس في لوحة من 18 سؤالاً متدرجة (200، 400، 600) مع خطوط النجاة والحفرة والقنبلة!',
       icon: FaBrain,
       badge: 'كلاسيكي شهير 🎯',
       gradient: 'from-amber-500/20 via-yellow-600/10 to-transparent',
@@ -79,11 +65,11 @@ export default function HomePage() {
     },
     {
       id: 'auction',
-      title: 'مزاد كرة القدم',
+      title: customTitles['auction'] || 'المزاد الكبير',
       subtitle: 'مزايدة ملحمية وتحدي الـ 45 ثانية',
-      description: 'مزايدة حية بين الفريقين على عدد اللاعبين والأندية، ومن يدخل التحدي يملك 45 ثانية لتحقيق الرهان أو تضيع النقاط!',
+      description: 'مزايدة حية بين الفريقين في شتى المجالات (رياضة، سينما، عواصم، دين، ثقافة)، ومن يثبت الرهان يملك 45 ثانية للفوز!',
       icon: FaGavel,
-      badge: 'تحدي ورهان كروي 🔨',
+      badge: 'تحدي ورهان 🔨',
       gradient: 'from-orange-500/20 via-amber-600/10 to-transparent',
       borderColor: 'border-orange-500/40',
       textColor: 'text-orange-400',
@@ -94,7 +80,7 @@ export default function HomePage() {
     },
     {
       id: 'sketch',
-      title: 'أهداف سكتش وصوت المعلق',
+      title: customTitles['sketch'] || 'أهداف سكتش وصوت المعلق',
       subtitle: 'تتبع حركة الكرة وصوت الشوالي وخليف',
       description: 'رسم تخطيطي متحرك لمسار الكرة والتمريرات لأهداف تاريخية خالدة، مع صوت واقتباسات أشهر المعلقين العرب!',
       icon: FaPenNib,
@@ -109,7 +95,7 @@ export default function HomePage() {
     },
     {
       id: 'lineup',
-      title: 'تحدي "تشكيلة"',
+      title: customTitles['lineup'] || 'تحدي "تشكيلة"',
       subtitle: 'من أي نادٍ انتقل اللاعب؟',
       description: 'تحدي كروي على أرضية الملعب! 22 لاعباً من أشهر النهائيات العالمية، احزر النادي السابق لكل لاعب قبل هذا النادي.',
       icon: FaFutbol,
@@ -124,7 +110,7 @@ export default function HomePage() {
     },
     {
       id: 'charades',
-      title: 'تمثيل شخصيات ولاعبين',
+      title: customTitles['charades'] || 'تمثيل شخصيات ولاعبين',
       subtitle: 'تمثيل صامت وتحدي الكلمات الممنوعة',
       description: 'ألعاب وضحك الأمسيات! مثل شخصيات باب الحارة والسينما العالمية وأساطير الكرة خلال 60 ثانية بدون كلام وبلا كلمات ممنوعة!',
       icon: FaTheaterMasks,
@@ -139,9 +125,9 @@ export default function HomePage() {
     },
     {
       id: 'mafia',
-      title: 'لعبة مافيا الجماعية',
+      title: customTitles['mafia'] || 'لعبة مافيا الجماعية',
       subtitle: 'توزيع الأدوار سرياً والتصويت',
-      description: 'لعبة الأمسيات المتكاملة! توزيع الأدوار سرياً (مافيا، محقق، طبيب، مواطن)، جولات ليل ونهار وتصويت تفاعلي مع سجل أحداث.',
+      description: 'لعبة الأمسيات المتكاملة! أضف أسماء اللاعبين من الصفر، توزيع الأدوار سرياً (مافيا، محقق، طبيب، مواطن) وتصويت تفاعلي.',
       icon: FaMask,
       badge: 'ألعاب جماعية 🕵️',
       gradient: 'from-purple-500/20 via-indigo-600/10 to-transparent',
@@ -154,7 +140,7 @@ export default function HomePage() {
     },
     {
       id: 'ai-mode',
-      title: 'التحدي ضد الذكاء الاصطناعي',
+      title: customTitles['ai-mode'] || 'التحدي ضد الذكاء الاصطناعي',
       subtitle: 'مواجهة فردية ضد روبوت هخلص عليك',
       description: 'العب بمفردك ضد منافس ذكي بمستويات (سهل، متوسط، صعب). الذكاء الاصطناعي يختار الفئات ويستخدم خطوط النجاة استراتيجياً.',
       icon: FaRobot,
@@ -169,7 +155,7 @@ export default function HomePage() {
     },
     {
       id: 'multiplayer-rooms',
-      title: 'الغرف الجماعية (أونلاين)',
+      title: customTitles['multiplayer-rooms'] || 'الغرف الجماعية (أونلاين)',
       subtitle: 'أنشئ غرفة أو انضم برمز سداسي',
       description: 'العب مع أصدقائك عن بُعد في الوقت الفعلي عبر رمز الغرفة، مع دردشة حية ونظام فرق وتنافس مباشر متزامن بالكامل.',
       icon: FaUsers,
@@ -182,10 +168,7 @@ export default function HomePage() {
       route: '/room',
       mode: 'team',
     },
-  ];
-
-  const featuredMode = gameModes.find((m) => m.featured);
-  const otherModes = gameModes.filter((m) => !m.featured);
+  ].filter((m) => !hiddenModes.includes(m.id));
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
@@ -202,22 +185,31 @@ export default function HomePage() {
           <div className="text-center md:text-right space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-[var(--color-accent)] text-xs font-bold">
               <FaCrown />
-              <span>المنصة رقم #1 للألعاب التفاعلية والمسابقات باللغة العربية</span>
+              <span>{theme?.heroBadge || 'المنصة رقم #1 للألعاب التفاعلية والمسابقات باللغة العربية'}</span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">
-              أهلاً بك في <span className="text-[var(--color-accent)]">هخلص عليك</span>
+              {theme?.heroTitle || (
+                <>
+                  أهلاً بك في <span className="text-[var(--color-accent)]">{theme?.siteName || 'هخلص عليك'}</span>
+                </>
+              )}
             </h1>
             <p className="text-white/70 max-w-xl text-sm sm:text-base leading-relaxed">
-              مشروع متكامل ومحتوى متجدد باستمرار: بطولات متعددة الجولات، مزاد كروي، أهداف سكتش، تمثيل شخصيات، وتحدي التشكيلة!
+              {theme?.heroDescription ||
+                'مشروع متكامل ومحتوى متجدد باستمرار: لوحة الـ 6 فئات، المزاد الكبير، أهداف سكتش، تمثيل شخصيات، مافيا، وتحدي التشكيلة!'}
             </p>
           </div>
 
-          {/* Quick User Stats Pill or Login CTA */}
+          {/* Quick User Stats Pill */}
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
             {isAuthenticated ? (
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--color-surface)]/80 border border-white/10 w-full sm:w-auto justify-center">
-                <div className="w-12 h-12 rounded-xl gradient-accent flex items-center justify-center text-[var(--color-primary)] font-bold text-xl">
-                  {user?.avatar || '🦁'}
+                <div className="w-12 h-12 rounded-xl gradient-accent flex items-center justify-center text-[var(--color-primary)] font-bold text-xl overflow-hidden">
+                  {user?.avatar && user.avatar.startsWith('http') ? (
+                    <img src={user.avatar} alt={user.nickname} className="w-full h-full object-cover" />
+                  ) : (
+                    user?.avatar || '🦁'
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold text-white">{user?.nickname}</div>
@@ -240,57 +232,18 @@ export default function HomePage() {
         </div>
       </motion.div>
 
-      {/* Featured Mode: Tournament Mode */}
-      {featuredMode && (
-        <motion.div
-          whileHover={{ scale: 1.01 }}
-          onClick={() => handleStartMode(featuredMode.mode, featuredMode.route)}
-          className={`p-6 sm:p-8 rounded-3xl glass-card border-2 ${featuredMode.borderColor} bg-gradient-to-r ${featuredMode.gradient} relative overflow-hidden shadow-2xl transition-all cursor-pointer`}
-        >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-5 text-right w-full md:w-auto">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl gradient-accent flex items-center justify-center text-[var(--color-primary)] text-3xl sm:text-4xl shadow-xl flex-shrink-0">
-                <FaTrophy />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[var(--color-accent)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/40">
-                    {featuredMode.badge}
-                  </span>
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-black text-white">{featuredMode.title}</h3>
-                <p className="text-xs sm:text-sm text-white/70 max-w-2xl mt-1 leading-relaxed">
-                  {featuredMode.description}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStartMode(featuredMode.mode, featuredMode.route);
-              }}
-              className="w-full md:w-auto px-8 py-4 rounded-2xl font-black text-sm gradient-accent text-[var(--color-primary)] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 flex-shrink-0"
-            >
-              <span>افتتاح البطولة الآن</span>
-              <FaArrowLeft className="text-xs" />
-            </button>
-          </div>
-        </motion.div>
-      )}
-
       {/* Grid of All Modes & Rounds */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-3 h-8 rounded-full gradient-accent" />
-            <h2 className="text-2xl font-extrabold text-white">أطوار اللعب والجولات المستقلة</h2>
+            <h2 className="text-2xl font-extrabold text-white">أطوار اللعب والتحديات</h2>
           </div>
           <span className="text-xs text-white/50">اختر الطور الذي يناسب جلستكم وتنافسوا</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {otherModes.map((mode, index) => {
+          {gameModes.map((mode, index) => {
             const Icon = mode.icon;
             return (
               <motion.div
@@ -328,7 +281,7 @@ export default function HomePage() {
                   }}
                   className={`mt-6 w-full py-2.5 px-4 rounded-xl font-bold text-xs ${mode.buttonBg} ${mode.buttonText} shadow-md flex items-center justify-center gap-2 transition-all`}
                 >
-                  <span>دخول الجولة</span>
+                  <span>دخول اللعبة</span>
                   <FaArrowLeft className="text-[10px]" />
                 </button>
               </motion.div>

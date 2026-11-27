@@ -102,9 +102,13 @@ export const gameApi = {
       }
     }
 
-    // Fallback to local questions
-    let list = getLocalQuestions();
-    if (category) list = list.filter(q => q.category === category);
+    // Fallback to local questions + localStorage custom questions
+    let localCustom = [];
+    try {
+      localCustom = JSON.parse(localStorage.getItem('admin_custom_questions') || '[]');
+    } catch {}
+    let list = [...getLocalQuestions(), ...(Array.isArray(localCustom) ? localCustom : [])];
+    if (category) list = list.filter(q => q.category === category || q.subcategory === category);
     if (subcategory) list = list.filter(q => q.subcategory === subcategory);
     return list;
   },
@@ -286,7 +290,7 @@ export const gameApi = {
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data: cats, error } = await supabase.from('categories').select('*').order('sort_order');
-        if (!error && cats) {
+        if (!error && cats && cats.length > 0) {
           const { data: qList } = await supabase.from('questions').select('category_slug');
           const countMap = {};
           if (qList) {
@@ -301,6 +305,7 @@ export const gameApi = {
             name_ar: c.name_ar || c.name,
             icon: c.icon || '🎯',
             color: c.color || '#e2b714',
+            image: c.image || '',
             sort_order: c.sort_order ?? 0,
             is_active: c.is_active ?? true,
             is_custom: c.is_custom ?? false,
@@ -312,7 +317,27 @@ export const gameApi = {
       }
     }
 
-    return [];
+    // Fallback: derive from local questions
+    const allQ = getLocalQuestions();
+    const catMap = new Map();
+    for (const q of allQ) {
+      const slug = q.subcategory || q.category;
+      if (!catMap.has(slug)) {
+        catMap.set(slug, {
+          id: slug,
+          slug,
+          name: q.subcategoryName || q.categoryName || slug,
+          name_ar: q.subcategoryName || q.categoryName || slug,
+          icon: '🎯',
+          color: '#e2b714',
+          is_active: true,
+          is_custom: false,
+          questionCount: 0,
+        });
+      }
+      catMap.get(slug).questionCount++;
+    }
+    return Array.from(catMap.values());
   },
 
   async addCategory(cat) {

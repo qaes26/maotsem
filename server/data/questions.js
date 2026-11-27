@@ -1104,6 +1104,45 @@ export function getQuestions() {
       points: 600,
       difficulty: 'hard',
       explanation: 'مسكن النمل يسمى القرية كما ورد في القرآن الكريم "حَتَّىٰ إِذَا أَتَوْا عَلَىٰ وَادِ النَّمْلِ".'
+    },
+    {
+      id: 'fashion-beauty-3',
+      category: 'girls',
+      categoryName: 'فئة البنات',
+      subcategory: 'fashion-beauty',
+      subcategoryName: 'موضة وجمال',
+      question: 'ما هو الفيتامين الشهير بـ "فيتامين الإشراقة" الذي يفتح البشرة ويحارب التصبغات ويكثر في الحمضيات؟',
+      options: ['فيتامين C', 'فيتامين D', 'فيتامين B12', 'فيتامين K'],
+      correctAnswer: 0,
+      points: 600,
+      difficulty: 'hard',
+      explanation: 'فيتامين C يعد من أقوى مضادات الأكسدة لتفتيح البشرة وتحفيز الكولاجين.'
+    },
+    {
+      id: 'math-mental-3',
+      category: 'math',
+      categoryName: 'رياضيات وذكاء',
+      subcategory: 'mental-math',
+      subcategoryName: 'حساب ذهني',
+      question: 'ما هو ناتج: (25 × 12) + 150 ÷ 3 ذهنياً؟',
+      options: ['350', '300', '400', '250'],
+      correctAnswer: 0,
+      points: 600,
+      difficulty: 'hard',
+      explanation: '25 × 12 = 300، و150 ÷ 3 = 50، والمجموع 350.'
+    },
+    {
+      id: 'arabic-plurals-3',
+      category: 'arabic',
+      categoryName: 'لغة عربية',
+      subcategory: 'plurals',
+      subcategoryName: 'جموع نادرة',
+      question: 'ما هو جمع كلمة "امرأة" في اللغة العربية الفصحى (من غير لفظها)؟',
+      options: ['نساء ونسوة', 'امرآت', 'مرائي', 'أمريات'],
+      correctAnswer: 0,
+      points: 200,
+      difficulty: 'easy',
+      explanation: 'امرأة جمعها من غير لفظها: نساء ونسوة.'
     }
   ];
 

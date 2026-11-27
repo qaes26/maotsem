@@ -7,18 +7,15 @@ import {
   FaRobot,
   FaUsers,
   FaUserFriends,
-  FaExclamationTriangle,
   FaBrain,
-  FaFutbol,
-  FaFilm,
-  FaGlobe,
-  FaFemale,
-  FaCalculator,
-  FaBook,
   FaRandom,
 } from 'react-icons/fa';
 import useGameStore from '../stores/gameStore';
 import { LifelineSelector } from '../components/Game/LifelinePanel';
+import gameApi from '../services/gameApi';
+
+export const FALLBACK_CATEGORY_IMAGE =
+  'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=600&q=80';
 
 export const CATEGORY_SECTIONS = [
   { id: 'all', name: 'جميع الأقسام', icon: '🌟' },
@@ -38,7 +35,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🦁',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/2023_07_31_arne_mueseler_00060-Verbessert-RR_%2853106651455%29.jpg/960px-2023_07_31_arne_mueseler_00060-Verbessert-RR_%2853106651455%29.jpg',
     color: 'from-purple-600/30 to-purple-900/30',
     border: 'border-purple-500/40',
   },
@@ -48,7 +45,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🇪🇸',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Camp_Nou_aerial.jpg/960px-Camp_Nou_aerial.jpg',
     color: 'from-amber-600/30 to-amber-900/30',
     border: 'border-amber-500/40',
   },
@@ -58,7 +55,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '⚔️',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Final_SuperCopa_ESP_2011_%286056383408%29.jpg/960px-Final_SuperCopa_ESP_2011_%286056383408%29.jpg',
     color: 'from-red-600/30 to-blue-900/30',
     border: 'border-red-500/40',
   },
@@ -68,7 +65,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '⭐',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/en/thumb/f/f5/UEFA_Champions_League.svg/960px-UEFA_Champions_League.svg.png',
     color: 'from-blue-600/30 to-blue-900/30',
     border: 'border-blue-500/40',
   },
@@ -78,7 +75,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🏆',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/en/thumb/a/a5/17_11_2021_-_Visita_ao_Est%C3%A1dio_Lusail_%2851688270420%29.jpg/960px-17_11_2021_-_Visita_ao_Est%C3%A1dio_Lusail_%2851688270420%29.jpg',
     color: 'from-rose-600/30 to-amber-900/30',
     border: 'border-rose-500/40',
   },
@@ -88,7 +85,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🌍',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=600&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/FIFA_World_Cup_Trophy_photo_by_Djuradj_Vujcic.jpg',
     color: 'from-emerald-600/30 to-emerald-900/30',
     border: 'border-emerald-500/40',
   },
@@ -98,7 +95,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🐐',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/Cristiano_Ronaldo_Croatia_v_Portugal_2_July_2026-075_%28cropped%29.jpg/960px-Cristiano_Ronaldo_Croatia_v_Portugal_2_July_2026-075_%28cropped%29.jpg',
     color: 'from-yellow-600/30 to-yellow-900/30',
     border: 'border-yellow-500/40',
   },
@@ -108,7 +105,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🐐',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg/960px-Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg',
     color: 'from-cyan-600/30 to-blue-900/30',
     border: 'border-cyan-500/40',
   },
@@ -118,7 +115,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🇮🇹',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Stadio_Meazza_2021_3.jpg/960px-Stadio_Meazza_2021_3.jpg',
     color: 'from-green-600/30 to-emerald-900/30',
     border: 'border-green-500/40',
   },
@@ -128,7 +125,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🇩🇪',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/Allianz_Arena_2008-02-09.jpg/960px-Allianz_Arena_2008-02-09.jpg',
     color: 'from-yellow-600/30 to-red-900/30',
     border: 'border-yellow-500/40',
   },
@@ -138,7 +135,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '👔',
     sectionId: 'football',
     sectionName: 'كرة قدم',
-    image: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/60/Josep_Guardiola_2023-10-04_Fu%C3%9Fball%2C_M%C3%A4nner%2C_UEFA_Champions_League%2C_RB_Leipzig_-_Manchester_City_FC_1DX_2797_%28cropped%29.jpg/960px-Josep_Guardiola_2023-10-04_Fu%C3%9Fball%2C_M%C3%A4nner%2C_UEFA_Champions_League%2C_RB_Leipzig_-_Manchester_City_FC_1DX_2797_%28cropped%29.jpg',
     color: 'from-indigo-600/30 to-indigo-900/30',
     border: 'border-indigo-500/40',
   },
@@ -160,7 +157,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🗡️',
     sectionId: 'series',
     sectionName: 'مسلسلات',
-    image: 'https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Damascus%2C_Syria%2C_Panoramic_view_of_Damascus.jpg/960px-Damascus%2C_Syria%2C_Panoramic_view_of_Damascus.jpg',
     color: 'from-stone-600/30 to-stone-900/30',
     border: 'border-stone-500/40',
   },
@@ -190,7 +187,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🎬',
     sectionId: 'series',
     sectionName: 'مسلسلات',
-    image: 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Hollywood_sign_%288485145044%29.jpg/960px-Hollywood_sign_%288485145044%29.jpg',
     color: 'from-purple-600/30 to-purple-900/30',
     border: 'border-purple-500/40',
   },
@@ -202,7 +199,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '💡',
     sectionId: 'general',
     sectionName: 'ثقافة عامة',
-    image: 'https://images.unsplash.com/photo-1507842229451-28b981503c5b?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/The_Great_Globe%2C_Guyot_Hall%2C_Princeton_University.jpg/960px-The_Great_Globe%2C_Guyot_Hall%2C_Princeton_University.jpg',
     color: 'from-teal-600/30 to-teal-900/30',
     border: 'border-teal-500/40',
   },
@@ -246,7 +243,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🧩',
     sectionId: 'math',
     sectionName: 'ذكاء',
-    image: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=600&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/6/6f/ChessSet.jpg',
     color: 'from-blue-600/30 to-blue-900/30',
     border: 'border-blue-500/40',
   },
@@ -258,7 +255,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '📖',
     sectionId: 'arabic',
     sectionName: 'لغة عربية',
-    image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Ibn_al-Bawwab_-_Qur%CA%BEan_f._278v-279r.jpg/960px-Ibn_al-Bawwab_-_Qur%CA%BEan_f._278v-279r.jpg',
     color: 'from-orange-600/30 to-orange-900/30',
     border: 'border-orange-500/40',
   },
@@ -268,7 +265,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '📜',
     sectionId: 'arabic',
     sectionName: 'لغة عربية',
-    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
+    image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80',
     color: 'from-amber-600/30 to-amber-900/30',
     border: 'border-amber-500/40',
   },
@@ -278,7 +275,7 @@ export const ALL_AVAILABLE_CATEGORIES = [
     icon: '🖋️',
     sectionId: 'arabic',
     sectionName: 'لغة عربية',
-    image: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=600&q=80',
+    image: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Fountain_pen_writing_%28literacy%29.jpg/960px-Fountain_pen_writing_%28literacy%29.jpg',
     color: 'from-lime-600/30 to-lime-900/30',
     border: 'border-lime-500/40',
   },
@@ -299,6 +296,32 @@ export default function GameSetupPage({ onStart }) {
     startGame,
   } = useGameStore();
 
+  const [availableCats, setAvailableCats] = useState(ALL_AVAILABLE_CATEGORIES);
+
+  useEffect(() => {
+    // Merge any custom categories added via Admin panel
+    gameApi.getCategories().then((remoteCats) => {
+      if (!Array.isArray(remoteCats) || remoteCats.length === 0) return;
+      const merged = [...ALL_AVAILABLE_CATEGORIES];
+      const existingIds = new Set(merged.map((c) => c.id));
+      for (const rc of remoteCats) {
+        if (rc.id && !existingIds.has(rc.id) && !['football', 'series', 'general', 'girls', 'math', 'arabic'].includes(rc.id)) {
+          merged.push({
+            id: rc.id,
+            name: rc.name,
+            icon: rc.icon || '🎯',
+            sectionId: rc.sectionId || 'general',
+            sectionName: rc.sectionName || 'قسم مخصص',
+            image: rc.image || FALLBACK_CATEGORY_IMAGE,
+            color: 'from-amber-600/30 to-amber-900/30',
+            border: 'border-amber-500/40',
+          });
+        }
+      }
+      setAvailableCats(merged);
+    }).catch(() => {});
+  }, []);
+
   const [chosenCats, setChosenCats] = useState(
     selectedCategories.length === 6
       ? selectedCategories
@@ -310,24 +333,21 @@ export default function GameSetupPage({ onStart }) {
   const [activeDifficulty, setActiveDifficulty] = useState(aiDifficulty || 'medium');
   const [teamAName, setTeamAName] = useState('الفريق الأول');
   const [teamBName, setTeamBName] = useState(isAIModeParam ? 'روبوت هخلص عليك (AI)' : 'الفريق الثاني');
-  const [step, setStep] = useState(1); // 1: Categories, 2: Lifelines, 3: Launch
+  const [step, setStep] = useState(1);
 
-  // Selected Lifelines for Team A & Team B (max 3 each)
   const [teamALifelines, setTeamALifelines] = useState(['two-answers', 'pit', 'double']);
   const [teamBLifelines, setTeamBLifelines] = useState(['pit', 'swap', 'bomb']);
 
   const handleToggleCategory = (catId) => {
     if (chosenCats.includes(catId)) {
       setChosenCats(chosenCats.filter((id) => id !== catId));
-    } else {
-      if (chosenCats.length < 6) {
-        setChosenCats([...chosenCats, catId]);
-      }
+    } else if (chosenCats.length < 6) {
+      setChosenCats([...chosenCats, catId]);
     }
   };
 
   const handleSelectRandom = () => {
-    const shuffled = [...ALL_AVAILABLE_CATEGORIES].sort(() => 0.5 - Math.random());
+    const shuffled = [...availableCats].sort(() => 0.5 - Math.random());
     setChosenCats(shuffled.slice(0, 6).map((c) => c.id));
   };
 
@@ -449,7 +469,6 @@ export default function GameSetupPage({ onStart }) {
                   <button
                     onClick={() => setChosenCats([])}
                     className="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold transition-all border border-red-500/20"
-                    title="تفريغ الاختيارات"
                   >
                     تفريغ
                   </button>
@@ -457,11 +476,11 @@ export default function GameSetupPage({ onStart }) {
               </div>
             </div>
 
-            {/* 6 Visual Slots for Selected Categories */}
+            {/* 6 Visual Slots */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
               {[0, 1, 2, 3, 4, 5].map((slotIdx) => {
                 const catId = chosenCats[slotIdx];
-                const cat = ALL_AVAILABLE_CATEGORIES.find((c) => c.id === catId);
+                const cat = availableCats.find((c) => c.id === catId);
 
                 if (cat) {
                   return (
@@ -469,20 +488,28 @@ export default function GameSetupPage({ onStart }) {
                       key={cat.id}
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="relative p-2.5 rounded-2xl border-2 border-[var(--color-accent)] text-center flex flex-col items-center justify-between min-h-[95px] shadow-lg group overflow-hidden bg-cover bg-center"
-                      style={{ backgroundImage: `url(${cat.image})` }}
+                      className="relative rounded-2xl border-2 border-[var(--color-accent)] text-center flex flex-col justify-end min-h-[115px] shadow-lg group overflow-hidden p-2.5"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/75 to-slate-900/50 backdrop-blur-[0.5px]" />
+                      <img
+                        src={cat.image || FALLBACK_CATEGORY_IMAGE}
+                        alt={cat.name}
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.src = FALLBACK_CATEGORY_IMAGE; }}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/45 to-slate-900/10" />
                       <button
                         onClick={() => handleToggleCategory(cat.id)}
-                        className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center opacity-90 hover:opacity-100 shadow-md z-10"
+                        className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center opacity-90 hover:opacity-100 shadow-md z-20"
                         title="إزالة الفئة"
                       >
                         ✕
                       </button>
-                      <span className="text-xl relative z-10 drop-shadow">{cat.icon}</span>
-                      <span className="text-xs font-black text-white line-clamp-1 relative z-10 drop-shadow">{cat.name}</span>
-                      <span className="text-[9px] text-[var(--color-accent)] font-bold relative z-10">{cat.sectionName}</span>
+                      <div className="relative z-10">
+                        <span className="text-lg block drop-shadow">{cat.icon}</span>
+                        <span className="text-xs font-black text-white line-clamp-1 drop-shadow">{cat.name}</span>
+                        <span className="text-[9px] text-[var(--color-accent)] font-bold">{cat.sectionName}</span>
+                      </div>
                     </motion.div>
                   );
                 }
@@ -490,7 +517,7 @@ export default function GameSetupPage({ onStart }) {
                 return (
                   <div
                     key={`empty-${slotIdx}`}
-                    className="p-3 rounded-2xl border-2 border-dashed border-white/15 bg-white/5 text-center flex flex-col items-center justify-center min-h-[95px] text-white/30"
+                    className="p-3 rounded-2xl border-2 border-dashed border-white/15 bg-white/5 text-center flex flex-col items-center justify-center min-h-[115px] text-white/30"
                   >
                     <span className="text-xs font-mono font-bold mb-1">فئة {slotIdx + 1}</span>
                     <span className="text-[10px]">+ شاغرة</span>
@@ -500,14 +527,14 @@ export default function GameSetupPage({ onStart }) {
             </div>
           </div>
 
-          {/* Section Filter Tabs (تقسيم الفئات لأقسام) */}
+          {/* Section Filter Tabs */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-white/70">تصفح الفئات حسب الأقسام:</span>
               <span className="text-xs text-white/40 font-mono">
                 {activeSection === 'all'
-                  ? `إجمالي الفئات: ${ALL_AVAILABLE_CATEGORIES.length}`
-                  : `فئات القسم: ${ALL_AVAILABLE_CATEGORIES.filter((c) => c.sectionId === activeSection).length}`}
+                  ? `إجمالي الفئات: ${availableCats.length}`
+                  : `فئات القسم: ${availableCats.filter((c) => c.sectionId === activeSection).length}`}
               </span>
             </div>
 
@@ -516,8 +543,8 @@ export default function GameSetupPage({ onStart }) {
                 const isActive = activeSection === sec.id;
                 const count =
                   sec.id === 'all'
-                    ? ALL_AVAILABLE_CATEGORIES.length
-                    : ALL_AVAILABLE_CATEGORIES.filter((c) => c.sectionId === sec.id).length;
+                    ? availableCats.length
+                    : availableCats.filter((c) => c.sectionId === sec.id).length;
 
                 return (
                   <button
@@ -544,54 +571,57 @@ export default function GameSetupPage({ onStart }) {
             </div>
           </div>
 
-          {/* Filtered Categories Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
-            {ALL_AVAILABLE_CATEGORIES.filter(
-              (cat) => activeSection === 'all' || cat.sectionId === activeSection
-            ).map((cat) => {
-              const isSelected = chosenCats.includes(cat.id);
-              const selectionIndex = chosenCats.indexOf(cat.id);
+          {/* Filtered Categories Grid with Verified Real Images */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {availableCats
+              .filter((cat) => activeSection === 'all' || cat.sectionId === activeSection)
+              .map((cat) => {
+                const isSelected = chosenCats.includes(cat.id);
+                const selectionIndex = chosenCats.indexOf(cat.id);
 
-              return (
-                <motion.div
-                  key={cat.id}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handleToggleCategory(cat.id)}
-                  className={`relative p-4 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between h-40 overflow-hidden shadow-xl ${
-                    isSelected
-                      ? 'border-[var(--color-accent)] ring-4 ring-[var(--color-accent)]/40 scale-[1.02]'
-                      : 'border-white/10 hover:border-white/30 opacity-90 hover:opacity-100'
-                  }`}
-                  style={{
-                    backgroundImage: `url(${cat.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                >
-                  {/* Dark gradient overlay for perfect readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-slate-900/40" />
+                return (
+                  <motion.div
+                    key={cat.id}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => handleToggleCategory(cat.id)}
+                    className={`relative p-4 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between h-44 overflow-hidden shadow-xl group ${
+                      isSelected
+                        ? 'border-[var(--color-accent)] ring-4 ring-[var(--color-accent)]/40 scale-[1.02]'
+                        : 'border-white/10 hover:border-white/30'
+                    }`}
+                  >
+                    <img
+                      src={cat.image || FALLBACK_CATEGORY_IMAGE}
+                      alt={cat.name}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.src = FALLBACK_CATEGORY_IMAGE; }}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/35 to-slate-950/15" />
 
-                  <div className="relative z-10 flex items-center justify-between">
-                    <span className="text-2xl drop-shadow-md">{cat.icon}</span>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/10 shadow">
-                      {cat.sectionName}
-                    </span>
-                  </div>
-
-                  <div className="relative z-10">
-                    <h3 className="text-sm font-black text-white leading-snug drop-shadow-lg">{cat.name}</h3>
-                  </div>
-
-                  {isSelected && (
-                    <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-accent)] text-[var(--color-primary)] flex items-center gap-1 text-[11px] font-black shadow-xl z-20">
-                      <FaCheck className="text-[10px]" />
-                      <span>فئة {selectionIndex + 1}</span>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <span className="text-2xl drop-shadow-md bg-black/40 backdrop-blur-sm w-9 h-9 rounded-xl flex items-center justify-center border border-white/10">
+                        {cat.icon}
+                      </span>
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-white border border-white/15 shadow">
+                        {cat.sectionName}
+                      </span>
                     </div>
-                  )}
-                </motion.div>
-              );
-            })}
+
+                    <div className="relative z-10">
+                      <h3 className="text-sm font-black text-white leading-snug drop-shadow-lg">{cat.name}</h3>
+                    </div>
+
+                    {isSelected && (
+                      <div className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-[var(--color-accent)] text-[var(--color-primary)] flex items-center gap-1 text-[11px] font-black shadow-xl z-20">
+                        <FaCheck className="text-[10px]" />
+                        <span>فئة {selectionIndex + 1}</span>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
           </div>
 
           {/* Continue button */}
@@ -621,7 +651,6 @@ export default function GameSetupPage({ onStart }) {
       ) : (
         /* Step 2: Mode, Teams & Lifelines */
         <div className="space-y-8">
-          {/* Mode Selector */}
           <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-4">
             <h3 className="text-lg font-bold text-white">اختر وضع المواجهة:</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -677,7 +706,6 @@ export default function GameSetupPage({ onStart }) {
               </button>
             </div>
 
-            {/* AI Difficulty Selector */}
             {activeMode === 'ai' && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -710,7 +738,6 @@ export default function GameSetupPage({ onStart }) {
             )}
           </div>
 
-          {/* Team Names Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-4 rounded-2xl glass-card border border-white/10">
               <label className="block text-xs font-bold text-[var(--color-accent)] mb-2">اسم الفريق الأول:</label>
@@ -734,7 +761,6 @@ export default function GameSetupPage({ onStart }) {
             </div>
           </div>
 
-          {/* Lifeline Selection (3 per team) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="glass-card p-6 rounded-3xl border border-white/10">
               <div className="flex items-center justify-between mb-4">
@@ -761,7 +787,6 @@ export default function GameSetupPage({ onStart }) {
             </div>
           </div>
 
-          {/* Bottom Actions */}
           <div className="flex items-center justify-between pt-6 border-t border-white/10">
             <button
               onClick={() => setStep(1)}
@@ -783,4 +808,3 @@ export default function GameSetupPage({ onStart }) {
     </div>
   );
 }
-

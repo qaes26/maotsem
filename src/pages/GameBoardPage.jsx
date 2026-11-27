@@ -1,35 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCrown,
   FaRedo,
   FaHome,
-  FaVolumeMute,
-  FaVolumeUp,
   FaRobot,
   FaCheck,
   FaTimes,
   FaPhoneAlt,
   FaBomb,
-  FaCrosshairs,
-  FaSyncAlt,
-  FaChevronDown,
-  FaClock,
-  FaExclamationCircle,
   FaEye,
 } from 'react-icons/fa';
 
-import GameSetupPage, { ALL_AVAILABLE_CATEGORIES } from './GameSetupPage';
-import QuestionCard from '../components/Game/QuestionCard';
-import LifelinePanel from '../components/Game/LifelinePanel';
-import Scoreboard from '../components/Game/Scoreboard';
-import AIOpponent from '../components/Game/AIOpponent';
-import Timer from '../components/shared/Timer';
+import GameSetupPage, { ALL_AVAILABLE_CATEGORIES, FALLBACK_CATEGORY_IMAGE } from './GameSetupPage';
 import useGameStore from '../stores/gameStore';
-import useAuthStore from '../stores/authStore';
 import sound from '../utils/soundEffects';
 import gameApi from '../services/gameApi';
+
+const ALL_LIFELINE_META = [
+  { id: 'two-answers', label: 'جوابين', icon: '🎯' },
+  { id: 'pit', label: 'الحفرة', icon: '⬇️' },
+  { id: 'double', label: 'الدبل', icon: '✖️2' },
+  { id: 'call-friend', label: 'صديق', icon: '📞' },
+  { id: 'swap', label: 'بدل', icon: '🔄' },
+  { id: 'bomb', label: 'قنبلة', icon: '💣' },
+];
 
 export default function GameBoardPage() {
   const navigate = useNavigate();
@@ -40,60 +36,65 @@ export default function GameBoardPage() {
     isGameActive,
     selectedCategories,
     scores,
+    setScores,
+    teamNames: storeTeamNames,
+    teamLifelines: storeTeamLifelines,
     currentTurn,
     gameMode,
     aiDifficulty,
     usedLifelines,
-    selectQuestion,
-    submitAnswer,
     useLifeline,
     nextTurn,
     resetGame,
-    setGameMode,
   } = useGameStore();
 
-  const user = useAuthStore((s) => s.user);
+  const teamNames = storeTeamNames || {
+    teamA: 'الفريق الأول',
+    teamB: isAIModeParam ? 'روبوت هخلص عليك (AI)' : 'الفريق الثاني',
+  };
 
   // Local game board state
   const [boardQuestions, setBoardQuestions] = useState([]);
   const [activeQuestion, setActiveQuestion] = useState(null);
-  const [activeQuestionCoords, setActiveQuestionCoords] = useState(null); // { cIdx, qIdx }
-  const [answeredSlots, setAnsweredSlots] = useState(new Set()); // Strictly tracks by slot coordinate 'cIdx-qIdx'
+  const [activeQuestionCoords, setActiveQuestionCoords] = useState(null);
+  const [answeredSlots, setAnsweredSlots] = useState(new Set());
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
 
-  // In-question states
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
-
   // Active lifeline in the current turn
-  const [currentLifeline, setCurrentLifeline] = useState(null); // 'two-answers' | 'pit' | 'double' | 'call-friend' | 'bomb'
+  const [currentLifeline, setCurrentLifeline] = useState(null);
   const [callFriendActive, setCallFriendActive] = useState(false);
   const [callFriendTimer, setCallFriendTimer] = useState(30);
-  const [bombResult, setBombResult] = useState(null); // { outcome: 'bonus'|'trap', points: 400 }
+  const [bombResult, setBombResult] = useState(null);
 
   // Game over state
   const [isGameOver, setIsGameOver] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
 
-  // Teams config
-  const [teamNames, setTeamNames] = useState({
-    teamA: 'الفريق الأول',
-    teamB: isAIModeParam ? 'روبوت هخلص عليك (AI)' : 'الفريق الثاني',
-  });
+  // Call-a-friend timer countdown
+  useEffect(() => {
+    if (!callFriendActive || callFriendTimer <= 0) return;
+    const t = setInterval(() => {
+      setCallFriendTimer((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [callFriendActive, callFriendTimer]);
 
   // Fetch / initialize board questions
   useEffect(() => {
     if (selectedCategories.length === 6) {
-      gameApi.getQuestions().then((questions) => {
+      setAnsweredSlots(new Set());
+      setIsGameOver(false);
+      setActiveQuestion(null);
+      Promise.all([gameApi.getQuestions(), gameApi.getCategories()]).then(([questions, remoteCats]) => {
         if (questions) {
-          buildBoard(questions, selectedCategories);
+          buildBoard(questions, selectedCategories, remoteCats || []);
         }
       });
     }
   }, [selectedCategories]);
 
   // Build the 6x3 grid
-  const buildBoard = (allQuestions, categories) => {
+  const buildBoard = (allQuestions, categories, remoteCats = []) => {
     const pointValues = [200, 400, 600];
     const grid = categories.map((catId, cIdx) => {
       const catQuestions = allQuestions.filter(
@@ -102,25 +103,24 @@ export default function GameBoardPage() {
 
       const sample = catQuestions[0];
       const catMeta = ALL_AVAILABLE_CATEGORIES.find((c) => c.id === catId);
-      const catName = catMeta ? catMeta.name : (sample ? sample.subcategoryName || sample.categoryName || catId : catId);
-      const catIcon = catMeta ? catMeta.icon : '🎯';
-      const catImage = catMeta ? catMeta.image : 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80';
+      const remoteMeta = remoteCats.find((c) => c.id === catId || c.slug === catId);
 
-      // Track picked questions for this column to guarantee 3 distinct questions
+      const catName =
+        catMeta?.name ||
+        remoteMeta?.name ||
+        (sample ? sample.subcategoryName || sample.categoryName || catId : catId);
+      const catIcon = catMeta?.icon || remoteMeta?.icon || '🎯';
+      const catImage = catMeta?.image || remoteMeta?.image || FALLBACK_CATEGORY_IMAGE;
+
       const usedIdsInCol = new Set();
 
       const questions = pointValues.map((points, qIdx) => {
         const slotId = `${cIdx}-${qIdx}`;
 
-        // 1. Unused match with exact points
         let match = catQuestions.find((q) => q.points === points && !usedIdsInCol.has(q.id));
-
-        // 2. Unused match with any points
         if (!match) {
           match = catQuestions.find((q) => !usedIdsInCol.has(q.id));
         }
-
-        // 3. Fallback: random from catQuestions
         if (!match && catQuestions.length > 0) {
           match = catQuestions[Math.floor(Math.random() * catQuestions.length)];
         }
@@ -137,6 +137,9 @@ export default function GameBoardPage() {
             ...match,
             slotId,
             points,
+            catImage,
+            catIcon,
+            catDisplayName: catName,
             id: `${match.id || catId}_${cIdx}_${qIdx}_${points}`,
             correctAnswerText,
           };
@@ -145,8 +148,11 @@ export default function GameBoardPage() {
         return {
           id: `${catId}_${cIdx}_${qIdx}_${points}`,
           slotId,
+          catImage,
+          catIcon,
+          catDisplayName: catName,
           question: `سؤال في ${catName} بقيمة ${points} نقطة`,
-          options: ['خيار 1', 'خيار 2', 'خيار 3', 'خيار 4'],
+          options: ['الإجابة النموذجية'],
           correctAnswer: 0,
           correctAnswerText: 'الإجابة النموذجية للسؤال',
           points,
@@ -193,27 +199,30 @@ export default function GameBoardPage() {
         return;
       }
 
-      // Pick question after 2 seconds
-      const timer = setTimeout(() => {
+      let t1, t2, t3;
+      t1 = setTimeout(() => {
         const move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
         handleSelectQuestion(move.q, move.cIdx, move.qIdx);
         setAiThinking(false);
 
-        // AI Answer execution after 3 seconds
-        setTimeout(() => {
+        t2 = setTimeout(() => {
           setIsAnswerRevealed(true);
           let accuracy = 0.65;
           if (aiDifficulty === 'easy') accuracy = 0.4;
           if (aiDifficulty === 'hard') accuracy = 0.85;
 
           const isCorrectChoice = Math.random() < accuracy;
-          setTimeout(() => {
-            handleAwardPoints(isCorrectChoice ? 'teamB' : null);
-          }, 2000);
-        }, 3000);
-      }, 2000);
+          t3 = setTimeout(() => {
+            handleAwardPoints(isCorrectChoice ? 'teamB' : null, move.q);
+          }, 1800);
+        }, 2500);
+      }, 1500);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
     }
   }, [currentTurn, activeQuestion, isGameOver, boardQuestions, answeredSlots]);
 
@@ -227,13 +236,13 @@ export default function GameBoardPage() {
     setIsAnswerRevealed(false);
     setCurrentLifeline(null);
     setBombResult(null);
-    setQuestionTimeLeft(30);
-    setTimerRunning(true);
+    setCallFriendActive(false);
+    setCallFriendTimer(30);
   };
 
   // Handle Lifeline Activation
-  const handleUseLifeline = (lifelineId) => {
-    if (currentLifeline || isAnswerRevealed) return;
+  const handleUseLifeline = async (lifelineId) => {
+    if (currentLifeline || isAnswerRevealed || !activeQuestion) return;
 
     const team = currentTurn;
     const teamUsed = usedLifelines[team] || [];
@@ -244,7 +253,7 @@ export default function GameBoardPage() {
 
     if (lifelineId === 'call-friend') {
       setCallFriendActive(true);
-      setCallFriendTimer(35);
+      setCallFriendTimer(30);
     } else if (lifelineId === 'bomb') {
       sound.playBomb();
       const isBonus = Math.random() >= 0.5;
@@ -254,100 +263,125 @@ export default function GameBoardPage() {
         points: pts,
       });
 
-      if (isBonus) {
-        scores[team] += pts;
-      } else {
-        scores[team] = Math.max(0, scores[team] - pts);
-      }
+      setScores((prev) => ({
+        ...prev,
+        [team]: isBonus ? prev[team] + pts : Math.max(0, prev[team] - pts),
+      }));
     } else if (lifelineId === 'swap') {
-      fetch('/api/game/questions')
-        .then((res) => res.json())
-        .then((data) => {
-          const alternates = data.questions.filter(
-            (item) => item.id !== activeQuestion.id && item.points === activeQuestion.points
-          );
-          if (alternates.length > 0) {
-            const newQ = alternates[Math.floor(Math.random() * alternates.length)];
-            const correctAnswerText =
-              newQ.correctAnswerText ||
-              (newQ.options && typeof newQ.correctAnswer === 'number'
-                ? newQ.options[newQ.correctAnswer]
-                : newQ.answer || 'الإجابة النموذجية');
-            setActiveQuestion({
-              ...newQ,
-              slotId: activeQuestion.slotId,
-              correctAnswerText,
-            });
-          }
-        });
+      try {
+        const allQ = await gameApi.getQuestions();
+        const alternates = (allQ || []).filter(
+          (item) => item.id !== activeQuestion.id && item.points === activeQuestion.points
+        );
+        if (alternates.length > 0) {
+          const newQ = alternates[Math.floor(Math.random() * alternates.length)];
+          const correctAnswerText =
+            newQ.correctAnswerText ||
+            (newQ.options && typeof newQ.correctAnswer === 'number'
+              ? newQ.options[newQ.correctAnswer]
+              : newQ.answer || 'الإجابة النموذجية');
+          setActiveQuestion({
+            ...newQ,
+            slotId: activeQuestion.slotId,
+            catImage: activeQuestion.catImage,
+            catIcon: activeQuestion.catIcon,
+            catDisplayName: activeQuestion.catDisplayName,
+            correctAnswerText,
+          });
+        }
+      } catch (err) {
+        console.warn('Swap question failed:', err);
+      }
     }
   };
 
-  // Award Points to Team A, Team B, or None (Referee / Teams Control)
-  const handleAwardPoints = (winnerTeam) => {
-    if (!activeQuestion) return;
+  // Award Points to Team A, Team B, or None (Referee Control)
+  const handleAwardPoints = (winnerTeam, questionOverride = null) => {
+    const q = questionOverride || activeQuestion;
+    if (!q) return;
 
-    let earnedPoints = activeQuestion.points;
+    let earnedPoints = q.points || 200;
     if (currentLifeline === 'double') {
       earnedPoints *= 2;
     }
 
     if (winnerTeam === 'teamA') {
       sound.playCorrect();
-      if (currentLifeline === 'pit' && currentTurn === 'teamA') {
-        scores.teamA += earnedPoints;
-        scores.teamB = Math.max(0, scores.teamB - earnedPoints);
-      } else {
-        scores.teamA += earnedPoints;
-      }
+      setScores((prev) => ({
+        teamA: prev.teamA + earnedPoints,
+        teamB: currentLifeline === 'pit' && currentTurn === 'teamA'
+          ? Math.max(0, prev.teamB - earnedPoints)
+          : prev.teamB,
+      }));
     } else if (winnerTeam === 'teamB') {
       sound.playCorrect();
-      if (currentLifeline === 'pit' && currentTurn === 'teamB') {
-        scores.teamB += earnedPoints;
-        scores.teamA = Math.max(0, scores.teamA - earnedPoints);
-      } else {
-        scores.teamB += earnedPoints;
-      }
+      setScores((prev) => ({
+        teamA: currentLifeline === 'pit' && currentTurn === 'teamB'
+          ? Math.max(0, prev.teamA - earnedPoints)
+          : prev.teamA,
+        teamB: prev.teamB + earnedPoints,
+      }));
     } else {
       sound.playWrong();
       if (currentLifeline === 'pit') {
-        scores[currentTurn] = Math.max(0, scores[currentTurn] - Math.round(earnedPoints / 2));
+        const penalty = Math.round(earnedPoints / 2);
+        setScores((prev) => ({
+          ...prev,
+          [currentTurn]: Math.max(0, prev[currentTurn] - penalty),
+        }));
       }
     }
 
-    // Mark slot strictly as answered
-    const slotId = activeQuestion.slotId || `${activeQuestionCoords?.cIdx}-${activeQuestionCoords?.qIdx}`;
+    // Mark ONLY this specific coordinate slot as answered
+    const slotId = q.slotId || `${activeQuestionCoords?.cIdx}-${activeQuestionCoords?.qIdx}`;
     setAnsweredSlots((prev) => {
       const next = new Set(prev);
       next.add(slotId);
 
-      // Check if all 18 questions are answered
       if (next.size >= 18) {
         setTimeout(() => {
           setIsGameOver(true);
           sound.playFanfare();
-        }, 1500);
+        }, 800);
       }
       return next;
     });
 
     setActiveQuestion(null);
+    setActiveQuestionCoords(null);
     setIsAnswerRevealed(false);
+    setCurrentLifeline(null);
+    setBombResult(null);
+    setCallFriendActive(false);
     nextTurn();
   };
 
-  // If game is not active or categories not selected, show GameSetupPage
+  const handleCloseWithoutScoring = () => {
+    setActiveQuestion(null);
+    setActiveQuestionCoords(null);
+    setIsAnswerRevealed(false);
+    setCurrentLifeline(null);
+    setBombResult(null);
+    setCallFriendActive(false);
+  };
+
   if (!isGameActive || selectedCategories.length < 6) {
     return <GameSetupPage onStart={() => {}} />;
   }
 
   const teamALeading = scores.teamA > scores.teamB;
   const teamBLeading = scores.teamB > scores.teamA;
-  const isTied = scores.teamA === scores.teamB;
+
+  const teamAList = storeTeamLifelines?.teamA?.length
+    ? ALL_LIFELINE_META.filter((lf) => storeTeamLifelines.teamA.includes(lf.id))
+    : ALL_LIFELINE_META.slice(0, 3);
+  const teamBList = storeTeamLifelines?.teamB?.length
+    ? ALL_LIFELINE_META.filter((lf) => storeTeamLifelines.teamB.includes(lf.id))
+    : ALL_LIFELINE_META.slice(3, 6);
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6">
-      {/* Top Bar: Controls + Header */}
+      {/* Top Bar */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
@@ -367,6 +401,9 @@ export default function GameBoardPage() {
         <button
           onClick={() => {
             if (window.confirm('هل تريد إعادة تعيين اللعبة وبدء مباراة جديدة؟')) {
+              setIsGameOver(false);
+              setAnsweredSlots(new Set());
+              setBoardQuestions([]);
               resetGame();
             }
           }}
@@ -383,7 +420,7 @@ export default function GameBoardPage() {
         <motion.div
           animate={
             currentTurn === 'teamA'
-              ? { scale: [1, 1.02, 1], borderColor: 'var(--color-accent)' }
+              ? { scale: [1, 1.01, 1], borderColor: 'var(--color-accent)' }
               : { scale: 1, borderColor: 'rgba(255,255,255,0.1)' }
           }
           className={`p-5 rounded-3xl glass-card border-2 transition-all relative overflow-hidden ${
@@ -416,37 +453,32 @@ export default function GameBoardPage() {
             </div>
           </div>
 
-          {/* Lifelines Bar for Team A */}
           <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-            <span className="text-[11px] font-bold text-white/60">خطوط النجاة (3/3):</span>
+            <span className="text-[11px] font-bold text-white/60">
+              خطوط النجاة ({teamAList.length - (usedLifelines.teamA || []).length}/{teamAList.length}):
+            </span>
             <div className="flex gap-1.5">
-              {[
-                { id: 'two-answers', label: 'جوابين', icon: '🎯' },
-                { id: 'pit', label: 'الحفرة', icon: '⬇️' },
-                { id: 'double', label: 'الدبل', icon: '✖️2' },
-                { id: 'call-friend', label: 'صديق', icon: '📞' },
-                { id: 'swap', label: 'بدل', icon: '🔄' },
-                { id: 'bomb', label: 'قنبلة', icon: '💣' },
-              ].map((lf) => {
+              {teamAList.map((lf) => {
                 const isUsed = (usedLifelines.teamA || []).includes(lf.id);
                 const isActiveInTurn = currentTurn === 'teamA' && currentLifeline === lf.id;
                 return (
                   <button
                     key={lf.id}
-                    disabled={isUsed || currentTurn !== 'teamA' || !activeQuestion || isAnswerSubmitted}
+                    disabled={isUsed || currentTurn !== 'teamA' || !activeQuestion || isAnswerRevealed}
                     onClick={() => handleUseLifeline(lf.id)}
                     title={`${lf.label} ${isUsed ? '(مستخدمة)' : ''}`}
-                    className={`w-8 h-8 rounded-xl text-xs flex items-center justify-center transition-all ${
+                    className={`px-2.5 h-8 rounded-xl text-xs font-bold flex items-center gap-1 transition-all ${
                       isActiveInTurn
                         ? 'bg-[var(--color-accent)] text-black ring-2 ring-white animate-pulse'
                         : isUsed
                         ? 'bg-white/5 opacity-30 text-white/30 cursor-not-allowed line-through'
-                        : currentTurn === 'teamA' && activeQuestion && !isAnswerSubmitted
-                        ? 'bg-white/10 hover:bg-[var(--color-accent)] hover:text-black text-white hover:scale-110 shadow-md'
+                        : currentTurn === 'teamA' && activeQuestion && !isAnswerRevealed
+                        ? 'bg-white/10 hover:bg-[var(--color-accent)] hover:text-black text-white hover:scale-105 shadow-md'
                         : 'bg-white/5 text-white/50'
                     }`}
                   >
-                    {lf.icon}
+                    <span>{lf.icon}</span>
+                    <span className="text-[10px] hidden sm:inline">{lf.label}</span>
                   </button>
                 );
               })}
@@ -458,7 +490,7 @@ export default function GameBoardPage() {
         <motion.div
           animate={
             currentTurn === 'teamB'
-              ? { scale: [1, 1.02, 1], borderColor: '#38bdf8' }
+              ? { scale: [1, 1.01, 1], borderColor: '#38bdf8' }
               : { scale: 1, borderColor: 'rgba(255,255,255,0.1)' }
           }
           className={`p-5 rounded-3xl glass-card border-2 transition-all relative overflow-hidden ${
@@ -491,37 +523,32 @@ export default function GameBoardPage() {
             </div>
           </div>
 
-          {/* Lifelines Bar for Team B */}
           <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-            <span className="text-[11px] font-bold text-white/60">خطوط النجاة (3/3):</span>
+            <span className="text-[11px] font-bold text-white/60">
+              خطوط النجاة ({teamBList.length - (usedLifelines.teamB || []).length}/{teamBList.length}):
+            </span>
             <div className="flex gap-1.5">
-              {[
-                { id: 'two-answers', label: 'جوابين', icon: '🎯' },
-                { id: 'pit', label: 'الحفرة', icon: '⬇️' },
-                { id: 'double', label: 'الدبل', icon: '✖️2' },
-                { id: 'call-friend', label: 'صديق', icon: '📞' },
-                { id: 'swap', label: 'بدل', icon: '🔄' },
-                { id: 'bomb', label: 'قنبلة', icon: '💣' },
-              ].map((lf) => {
+              {teamBList.map((lf) => {
                 const isUsed = (usedLifelines.teamB || []).includes(lf.id);
                 const isActiveInTurn = currentTurn === 'teamB' && currentLifeline === lf.id;
                 return (
                   <button
                     key={lf.id}
-                    disabled={isUsed || currentTurn !== 'teamB' || !activeQuestion || isAnswerSubmitted}
+                    disabled={isUsed || currentTurn !== 'teamB' || !activeQuestion || isAnswerRevealed}
                     onClick={() => handleUseLifeline(lf.id)}
                     title={`${lf.label} ${isUsed ? '(مستخدمة)' : ''}`}
-                    className={`w-8 h-8 rounded-xl text-xs flex items-center justify-center transition-all ${
+                    className={`px-2.5 h-8 rounded-xl text-xs font-bold flex items-center gap-1 transition-all ${
                       isActiveInTurn
                         ? 'bg-cyan-400 text-black ring-2 ring-white animate-pulse'
                         : isUsed
                         ? 'bg-white/5 opacity-30 text-white/30 cursor-not-allowed line-through'
-                        : currentTurn === 'teamB' && activeQuestion && !isAnswerSubmitted
-                        ? 'bg-white/10 hover:bg-cyan-400 hover:text-black text-white hover:scale-110 shadow-md'
+                        : currentTurn === 'teamB' && activeQuestion && !isAnswerRevealed
+                        ? 'bg-white/10 hover:bg-cyan-400 hover:text-black text-white hover:scale-105 shadow-md'
                         : 'bg-white/5 text-white/50'
                     }`}
                   >
-                    {lf.icon}
+                    <span>{lf.icon}</span>
+                    <span className="text-[10px] hidden sm:inline">{lf.label}</span>
                   </button>
                 );
               })}
@@ -535,15 +562,17 @@ export default function GameBoardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {boardQuestions.map((col, cIdx) => (
             <div key={col.id || cIdx} className="space-y-3">
-              {/* Category Header Card with Real Image */}
-              <div
-                className="p-3 sm:p-4 rounded-2xl border border-white/10 text-center flex flex-col justify-end min-h-[92px] shadow-lg relative overflow-hidden bg-cover bg-center group"
-                style={{
-                  backgroundImage: `url(${col.image || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80'})`,
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-slate-900/40 backdrop-blur-[0.5px]" />
-                <div className="relative z-10">
+              {/* Category Header Card with Real Image Clearly Visible */}
+              <div className="rounded-2xl border border-white/15 text-center flex flex-col justify-end min-h-[128px] shadow-lg relative overflow-hidden group">
+                <img
+                  src={col.image || FALLBACK_CATEGORY_IMAGE}
+                  alt={col.name}
+                  loading="lazy"
+                  onError={(e) => { e.currentTarget.src = FALLBACK_CATEGORY_IMAGE; }}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-transparent" />
+                <div className="relative z-10 p-3">
                   <span className="text-lg block mb-0.5 drop-shadow">{col.icon || '🎯'}</span>
                   <span className="text-xs sm:text-sm font-black text-white leading-tight line-clamp-2 drop-shadow-md">
                     {col.name}
@@ -583,28 +612,48 @@ export default function GameBoardPage() {
         </div>
       </div>
 
-      {/* Active Question Modal (بدون خيارات متعددة + زر كشف الإجابة) */}
+      {/* Active Question Modal (السؤال وحيد بدون خيارات + صورة الفئة + زر كشف الإجابة) */}
       <AnimatePresence>
         {activeQuestion && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
             <motion.div
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.85, opacity: 0 }}
-              className="w-full max-w-3xl glass-card rounded-3xl border-2 border-[var(--color-accent)]/40 p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden"
+              className="w-full max-w-3xl glass-card rounded-3xl border-2 border-[var(--color-accent)]/40 p-6 sm:p-8 space-y-5 shadow-2xl relative overflow-hidden my-auto"
             >
-              {/* Question Header Bar */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 rounded-full bg-[var(--color-accent)] text-[var(--color-primary)] font-black text-sm">
-                    {currentLifeline === 'double' ? activeQuestion.points * 2 : activeQuestion.points} نقطة
-                  </span>
-                  <span className="text-xs text-white/70 font-semibold">
-                    {activeQuestion.subcategoryName || activeQuestion.categoryName || 'سؤال'}
-                  </span>
+              {/* Category Banner Strip inside Modal */}
+              {activeQuestion.catImage && (
+                <div className="relative h-24 rounded-2xl overflow-hidden border border-white/10">
+                  <img
+                    src={activeQuestion.catImage}
+                    alt={activeQuestion.catDisplayName}
+                    onError={(e) => { e.currentTarget.src = FALLBACK_CATEGORY_IMAGE; }}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/50 to-slate-950/90 flex items-center justify-between px-5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">{activeQuestion.catIcon || '🎯'}</span>
+                      <span className="text-sm sm:text-base font-black text-white">
+                        {activeQuestion.catDisplayName || activeQuestion.subcategoryName || activeQuestion.categoryName}
+                      </span>
+                    </div>
+                    <span className="px-3.5 py-1.5 rounded-full bg-[var(--color-accent)] text-[var(--color-primary)] font-black text-sm shadow-lg">
+                      {currentLifeline === 'double' ? activeQuestion.points * 2 : activeQuestion.points} نقطة
+                    </span>
+                  </div>
                 </div>
+              )}
 
-                {/* Active Lifeline Indicator badge */}
+              {/* Question Header Bar */}
+              <div className="flex items-center justify-between flex-wrap gap-2 border-b border-white/10 pb-3">
+                <span className="text-xs font-bold text-white/80">
+                  دور:{' '}
+                  <span className="text-[var(--color-accent)]">
+                    {currentTurn === 'teamA' ? teamNames.teamA : teamNames.teamB}
+                  </span>
+                </span>
+
                 {currentLifeline && (
                   <div className="px-3 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 text-xs font-bold flex items-center gap-1.5 animate-pulse">
                     <span>خط النجاة مفعّل:</span>
@@ -613,21 +662,22 @@ export default function GameBoardPage() {
                       {currentLifeline === 'pit' && '⬇️ الحفرة (+لك و -للخصم)'}
                       {currentLifeline === 'double' && '✖️2 مضاعفة النقاط'}
                       {currentLifeline === 'call-friend' && '📞 اتصال بصديق'}
+                      {currentLifeline === 'swap' && '🔄 تبديل السؤال'}
                       {currentLifeline === 'bomb' && '💣 القنبلة'}
                     </span>
                   </div>
                 )}
 
-                {/* Turn badge */}
-                <span className="text-xs font-bold text-white/80">
-                  دور:{' '}
-                  <span className="text-[var(--color-accent)]">
-                    {currentTurn === 'teamA' ? teamNames.teamA : teamNames.teamB}
-                  </span>
-                </span>
+                {!isAnswerRevealed && (
+                  <button
+                    onClick={handleCloseWithoutScoring}
+                    className="text-xs text-white/40 hover:text-white px-2.5 py-1 rounded-lg bg-white/5"
+                  >
+                    إلغاء / رجوع ✕
+                  </button>
+                )}
               </div>
 
-              {/* Bomb mystery alert if used */}
               {bombResult && (
                 <div
                   className={`p-3 rounded-2xl text-center text-xs font-black flex items-center justify-center gap-2 ${
@@ -645,18 +695,17 @@ export default function GameBoardPage() {
                 </div>
               )}
 
-              {/* Call a friend active timer */}
               {callFriendActive && (
                 <div className="p-3 rounded-2xl bg-green-500/20 border border-green-500/40 text-green-300 text-xs flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <FaPhoneAlt className="animate-bounce" />
                     <span>مكالمة الصديق جارية... اسأله الآن!</span>
                   </div>
-                  <span className="font-mono font-bold text-sm">30 ثانية</span>
+                  <span className="font-mono font-bold text-sm">{callFriendTimer} ثانية</span>
                 </div>
               )}
 
-              {/* Question Text Alone (السؤال موجود وحيد بدون خيارات متعددة) */}
+              {/* Question Text Alone (بدون خيارات متعددة) */}
               <div className="text-center py-6 px-4 bg-white/5 rounded-3xl border border-white/10 shadow-inner my-2">
                 <span className="text-xs font-bold text-[var(--color-accent)] block mb-2">السؤال المطلوب:</span>
                 <h2 className="text-xl sm:text-2xl font-black text-white leading-relaxed">
@@ -664,9 +713,9 @@ export default function GameBoardPage() {
                 </h2>
               </div>
 
-              {/* Question Action: Reveal Button or Revealed Answer */}
+              {/* Reveal Answer Button or Revealed Correct Answer */}
               {!isAnswerRevealed ? (
-                <div className="flex flex-col items-center justify-center py-6 gap-3">
+                <div className="flex flex-col items-center justify-center py-4 gap-3">
                   <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
@@ -689,7 +738,6 @@ export default function GameBoardPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="space-y-4"
                 >
-                  {/* The Single Correct Answer Card */}
                   <div className="p-6 rounded-3xl bg-emerald-500/20 border-2 border-emerald-500/60 shadow-xl shadow-emerald-500/10 text-center space-y-2">
                     <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
                       الإجابة الصحيحة المعتمدة ✓
@@ -703,7 +751,6 @@ export default function GameBoardPage() {
                     </div>
                   </div>
 
-                  {/* Optional Explanation */}
                   {activeQuestion.explanation && (
                     <div className="p-4 rounded-2xl bg-white/5 border border-white/5 text-xs text-white/80 text-right leading-relaxed">
                       <span className="font-bold text-[var(--color-accent)] block mb-1">💡 معلومة هخلص عليك:</span>
@@ -711,7 +758,6 @@ export default function GameBoardPage() {
                     </div>
                   )}
 
-                  {/* Referee Award Points Section */}
                   <div className="pt-4 border-t border-white/10 space-y-3">
                     <div className="text-center text-xs font-bold text-white/60">
                       ⚖️ قرار الحكم ومنح النقاط:
@@ -773,7 +819,6 @@ export default function GameBoardPage() {
                 </div>
               </div>
 
-              {/* Final Scores */}
               <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 font-mono">
                 <div>
                   <div className="text-xs text-white/60 mb-1">{teamNames.teamA}</div>
@@ -787,7 +832,12 @@ export default function GameBoardPage() {
 
               <div className="flex items-center justify-center gap-3">
                 <button
-                  onClick={() => resetGame()}
+                  onClick={() => {
+                    setIsGameOver(false);
+                    setAnsweredSlots(new Set());
+                    setBoardQuestions([]);
+                    resetGame();
+                  }}
                   className="px-6 py-3 rounded-2xl font-bold text-xs gradient-accent text-[var(--color-primary)] hover:scale-105 transition-all flex items-center gap-2"
                 >
                   <FaRedo />
@@ -809,4 +859,3 @@ export default function GameBoardPage() {
     </div>
   );
 }
-

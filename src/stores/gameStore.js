@@ -7,6 +7,11 @@ const useGameStore = create((set, get) => ({
   selectedCategories: [],
   currentQuestion: null,
   scores: { teamA: 0, teamB: 0 },
+  teamNames: { teamA: 'الفريق الأول', teamB: 'الفريق الثاني' },
+  teamLifelines: {
+    teamA: ['two-answers', 'pit', 'double'],
+    teamB: ['pit', 'swap', 'bomb'],
+  },
   currentTurn: 'teamA',
   lifelines: ['two-answers', 'pit', 'double', 'call-friend', 'swap', 'bomb'],
   usedLifelines: { teamA: [], teamB: [] },
@@ -28,6 +33,12 @@ const useGameStore = create((set, get) => ({
   // Set selected categories
   setSelectedCategories: (categories) => set({ selectedCategories: categories }),
 
+  // Update scores cleanly (immutable update so subscribers always re-render)
+  setScores: (updater) =>
+    set((state) => ({
+      scores: typeof updater === 'function' ? updater(state.scores) : { ...state.scores, ...updater },
+    })),
+
   // Start a new game
   startGame: (config = {}) => {
     const socket = useSocketStore.getState().socket;
@@ -38,9 +49,25 @@ const useGameStore = create((set, get) => ({
         aiDifficulty: config.aiDifficulty || get().aiDifficulty,
       });
     }
+    const mode = config.mode || get().gameMode;
     set({
       isGameActive: true,
+      gameMode: mode,
+      aiDifficulty: config.aiDifficulty || get().aiDifficulty,
+      selectedCategories: config.categories || get().selectedCategories,
       scores: { teamA: 0, teamB: 0 },
+      teamNames: {
+        teamA: config.teamAName?.trim() || 'الفريق الأول',
+        teamB: config.teamBName?.trim() || (mode === 'ai' ? 'روبوت هخلص عليك (AI)' : 'الفريق الثاني'),
+      },
+      teamLifelines: {
+        teamA: Array.isArray(config.teamALifelines) && config.teamALifelines.length > 0
+          ? config.teamALifelines
+          : ['two-answers', 'pit', 'double'],
+        teamB: Array.isArray(config.teamBLifelines) && config.teamBLifelines.length > 0
+          ? config.teamBLifelines
+          : ['pit', 'swap', 'bomb'],
+      },
       currentTurn: 'teamA',
       usedLifelines: { teamA: [], teamB: [] },
       answeredQuestions: [],
@@ -79,9 +106,7 @@ const useGameStore = create((set, get) => ({
     const socket = useSocketStore.getState().socket;
     const { currentTurn, usedLifelines } = get();
 
-    // Check if team already used max lifelines
     if (usedLifelines[currentTurn]?.length >= 3) return;
-    // Check if lifeline already used by this team
     if (usedLifelines[currentTurn]?.includes(lifelineId)) return;
 
     if (socket) {
@@ -162,13 +187,9 @@ const useGameStore = create((set, get) => ({
     }
   },
 
-  // Set current question from server
   setCurrentQuestion: (question) => set({ currentQuestion: question }),
-
-  // Set timer
   setTimer: (time) => set({ timer: time }),
 
-  // Initialize socket listeners
   initSocketListeners: () => {
     const socket = useSocketStore.getState().socket;
     if (!socket) return;
@@ -188,7 +209,6 @@ const useGameStore = create((set, get) => ({
     });
   },
 
-  // Cleanup socket listeners
   cleanupSocketListeners: () => {
     const socket = useSocketStore.getState().socket;
     if (!socket) return;

@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from './stores/authStore';
 import useThemeStore from './stores/themeStore';
 import Header from './components/Layout/Header';
@@ -17,7 +17,6 @@ const MafiaPage = lazy(() => import('./pages/MafiaPage'));
 const AuctionPage = lazy(() => import('./pages/AuctionPage'));
 const SketchPage = lazy(() => import('./pages/SketchPage'));
 const CharadesPage = lazy(() => import('./pages/CharadesPage'));
-const TournamentPage = lazy(() => import('./pages/TournamentPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 // Protected Route wrapper
@@ -44,6 +43,8 @@ function LoadingScreen() {
 export default function App() {
   const loadUser = useAuthStore((s) => s.loadUser);
   const loadTheme = useThemeStore((s) => s.loadTheme);
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   useEffect(() => {
     loadUser();
@@ -52,7 +53,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col gradient-bg">
-      <Header />
+      {!isAdminRoute && <Header />}
       <main className="flex-1">
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
@@ -80,13 +81,12 @@ export default function App() {
             <Route path="/auction" element={<AuctionPage />} />
             <Route path="/sketch" element={<SketchPage />} />
             <Route path="/charades" element={<CharadesPage />} />
-            <Route path="/tournament" element={<TournamentPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </main>
-      <Footer />
+      {!isAdminRoute && <Footer />}
       <Toast />
     </div>
   );

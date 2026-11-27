@@ -2,17 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import gameApi from '../services/gameApi';
-import {
-  FaFutbol,
-  FaHome,
-  FaRedo,
-  FaTrophy,
-  FaCheck,
-  FaTimes,
-  FaInfoCircle,
-  FaCrown,
-  FaShieldAlt,
-} from 'react-icons/fa';
+import { FaFutbol, FaHome, FaRedo } from 'react-icons/fa';
 
 export default function LineupPage() {
   const navigate = useNavigate();
@@ -25,22 +15,22 @@ export default function LineupPage() {
 
   // Selected player on pitch
   const [activePlayer, setActivePlayer] = useState(null);
-  const [revealedPlayers, setRevealedPlayers] = useState(new Map()); // playerKey -> { isCorrect, guess, actual }
+  const [revealedPlayers, setRevealedPlayers] = useState(new Map());
   const [selectedClub, setSelectedClub] = useState(null);
   const [showResult, setShowResult] = useState(false);
 
   // Fetch matches
   useEffect(() => {
-    gameApi.getLineups().then((matches) => {
-      if (matches && matches.length > 0) {
-        setMatches(matches);
-        setSelectedMatch(matches[0]);
+    gameApi.getLineups().then((data) => {
+      if (data && data.length > 0) {
+        setMatches(data);
+        setSelectedMatch(data[0]);
       }
     });
   }, []);
 
   const handleSelectPlayer = (player, side) => {
-    const key = `${selectedMatch.id}-${side}-${player.number}`;
+    const key = `${selectedMatch.id}-${side}-${player.number}-${player.name}`;
     if (revealedPlayers.has(key)) return;
 
     setActivePlayer({ ...player, side, key });
@@ -78,6 +68,13 @@ export default function LineupPage() {
     setCurrentTurn((prev) => (prev === 'team1' ? 'team2' : 'team1'));
   };
 
+  const handleResetMatch = () => {
+    setRevealedPlayers(new Map());
+    setActivePlayer(null);
+    setScores({ team1: 0, team2: 0 });
+    setCurrentTurn('team1');
+  };
+
   if (!selectedMatch) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -86,10 +83,10 @@ export default function LineupPage() {
     );
   }
 
-  const team1Leading = scores.team1 > scores.team2;
-  const team2Leading = scores.team2 > scores.team1;
-
   const currentDisplayTeam = activeTeamSide === 'teamA' ? selectedMatch.teamA : selectedMatch.teamB;
+  const totalMatchPlayers =
+    (selectedMatch.teamA?.players?.length || 0) + (selectedMatch.teamB?.players?.length || 0);
+  const allRevealed = totalMatchPlayers > 0 && revealedPlayers.size >= totalMatchPlayers;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
@@ -112,7 +109,14 @@ export default function LineupPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetMatch}
+            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all border border-white/10"
+          >
+            <FaRedo />
+            <span>إعادة المباراة</span>
+          </button>
           <button
             onClick={() => navigate('/')}
             className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold flex items-center gap-2 transition-all border border-white/10"
@@ -183,8 +187,22 @@ export default function LineupPage() {
         </div>
       </div>
 
-      {/* Team Lineup Switcher (Team A vs Team B) */}
-      <div className="flex items-center justify-center gap-4">
+      {allRevealed && (
+        <div className="p-5 rounded-3xl bg-emerald-500/20 border-2 border-emerald-400 text-center space-y-2">
+          <div className="text-2xl font-black text-white">
+            🏆 اكتملت تشكيلة المباراة!{' '}
+            {scores.team1 > scores.team2
+              ? 'فاز الفريق الأول!'
+              : scores.team2 > scores.team1
+              ? 'فاز الفريق الثاني!'
+              : 'تعادل مثير بين الفريقين!'}
+          </div>
+          <p className="text-xs text-white/70">اختر مباراة أخرى من الأعلى أو أعد اللعب</p>
+        </div>
+      )}
+
+      {/* Team Lineup Switcher */}
+      <div className="flex items-center justify-center gap-4 flex-wrap">
         <button
           onClick={() => setActiveTeamSide('teamA')}
           className={`px-6 py-2.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 border ${
@@ -211,7 +229,8 @@ export default function LineupPage() {
       </div>
 
       {/* Soccer Pitch View */}
-      <div className="relative rounded-3xl overflow-hidden border-4 border-emerald-600/40 shadow-2xl p-6 sm:p-10 min-h-[500px] flex flex-col justify-between"
+      <div
+        className="relative rounded-3xl overflow-hidden border-4 border-emerald-600/40 shadow-2xl p-6 sm:p-10 min-h-[500px] flex flex-col justify-between"
         style={{
           background: 'radial-gradient(ellipse at center, #0f5132 0%, #052c1e 100%)',
           backgroundImage: `
@@ -222,20 +241,18 @@ export default function LineupPage() {
           backgroundSize: '40px 40px',
         }}
       >
-        {/* Pitch Lines (Penalty box, Center Circle) */}
         <div className="absolute inset-4 border-2 border-white/20 rounded-2xl pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-2 border-white/20 pointer-events-none" />
         <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-white/20 pointer-events-none" />
 
-        {/* Players Grid on Pitch */}
         <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {currentDisplayTeam.players.map((player) => {
-            const key = `${selectedMatch.id}-${activeTeamSide}-${player.number}`;
+          {(currentDisplayTeam?.players || []).map((player) => {
+            const key = `${selectedMatch.id}-${activeTeamSide}-${player.number}-${player.name}`;
             const revealed = revealedPlayers.get(key);
 
             return (
               <motion.button
-                key={player.number}
+                key={key}
                 whileHover={!revealed ? { scale: 1.05 } : {}}
                 whileTap={!revealed ? { scale: 0.95 } : {}}
                 disabled={!!revealed}
@@ -264,7 +281,9 @@ export default function LineupPage() {
                     {revealed.isCorrect ? (
                       <span className="text-emerald-400">✓ {revealed.actual}</span>
                     ) : (
-                      <span className="text-red-400 line-through">✗ {revealed.guess}</span>
+                      <span className="text-red-400">
+                        ✗ <span className="line-through">{revealed.guess}</span> ({revealed.actual})
+                      </span>
                     )}
                   </div>
                 ) : (
@@ -306,9 +325,8 @@ export default function LineupPage() {
                 </p>
               </div>
 
-              {/* Options */}
               <div className="grid grid-cols-2 gap-3">
-                {activePlayer.options.map((club, idx) => {
+                {(activePlayer.options || []).map((club, idx) => {
                   let btnColor = 'bg-white/5 hover:bg-white/10 border-white/10 text-white';
 
                   if (showResult) {
@@ -332,7 +350,6 @@ export default function LineupPage() {
                 })}
               </div>
 
-              {/* Result Feedback */}
               {showResult && (
                 <div className="space-y-4 pt-2">
                   <div
@@ -362,4 +379,3 @@ export default function LineupPage() {
     </div>
   );
 }
-

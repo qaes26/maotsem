@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   FaTheaterMasks,
   FaHome,
@@ -8,11 +8,7 @@ import {
   FaCheck,
   FaTimes,
   FaEye,
-  FaEyeSlash,
-  FaVolumeUp,
-  FaVolumeMute,
-  FaArrowLeft,
-  FaRedo,
+  FaRandom,
 } from 'react-icons/fa';
 import sound from '../utils/soundEffects';
 import gameApi from '../services/gameApi';
@@ -29,7 +25,7 @@ export default function CharadesPage() {
   // Teams & Scores
   const [currentTeam, setCurrentTeam] = useState('teamA');
   const [scores, setScores] = useState({ teamA: 0, teamB: 0 });
-  const [teamNames] = useState({ teamA: 'الفريق الأول', teamB: 'الفريق الثاني' });
+  const [teamNames, setTeamNames] = useState({ teamA: 'الفريق الأول', teamB: 'الفريق الثاني' });
   const [roundCompleted, setRoundCompleted] = useState(false);
   const [roundResult, setRoundResult] = useState(null); // 'guessed' | 'expired' | 'violation'
 
@@ -53,7 +49,7 @@ export default function CharadesPage() {
           } else if (t % 10 === 0) {
             sound.playTick(false);
           }
-          return t - 1;
+          return Math.max(0, t - 1);
         });
       }, 1000);
     } else if (timerActive && timeLeft === 0) {
@@ -74,6 +70,7 @@ export default function CharadesPage() {
   };
 
   const handleCorrectGuess = () => {
+    if (roundCompleted) return;
     sound.playCorrect();
     setTimerActive(false);
     setRoundCompleted(true);
@@ -85,6 +82,7 @@ export default function CharadesPage() {
   };
 
   const handleViolation = () => {
+    if (roundCompleted) return;
     sound.playWrong();
     setTimerActive(false);
     setRoundCompleted(true);
@@ -107,6 +105,18 @@ export default function CharadesPage() {
     setCurrentCardIdx((prev) => (prev + 1) % (cards.length || 1));
   };
 
+  const handleShuffleCards = () => {
+    if (cards.length <= 1) return;
+    const shuffled = [...cards].sort(() => Math.random() - 0.5);
+    setCards(shuffled);
+    setCurrentCardIdx(0);
+    setIsSecretRevealed(false);
+    setTimerActive(false);
+    setTimeLeft(60);
+    setRoundCompleted(false);
+    setRoundResult(null);
+  };
+
   if (!activeCard) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -125,7 +135,7 @@ export default function CharadesPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-white">تمثيل شخصيات ولاعبين (Charades)</h1>
+              <h1 className="text-2xl font-black text-white">تمثيل شخصيات ولاعبين</h1>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30">
                 طور الأمسيات والضحك
               </span>
@@ -134,13 +144,22 @@ export default function CharadesPage() {
           </div>
         </div>
 
-        <button
-          onClick={() => navigate('/')}
-          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold flex items-center gap-2 border border-white/10"
-        >
-          <FaHome />
-          <span>الرئيسية</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleShuffleCards}
+            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold flex items-center gap-1.5 border border-white/10"
+          >
+            <FaRandom />
+            <span className="hidden sm:inline">خلط البطاقات</span>
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold flex items-center gap-2 border border-white/10"
+          >
+            <FaHome />
+            <span>الرئيسية</span>
+          </button>
+        </div>
       </div>
 
       {/* Scoreboard */}
@@ -150,9 +169,14 @@ export default function CharadesPage() {
             currentTeam === 'teamA' ? 'border-pink-500 bg-pink-500/10' : 'border-white/10 bg-white/5'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs text-pink-400 font-bold">{teamNames.teamA}</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <input
+                type="text"
+                value={teamNames.teamA}
+                onChange={(e) => setTeamNames((p) => ({ ...p, teamA: e.target.value }))}
+                className="bg-transparent text-xs text-pink-400 font-bold focus:outline-none focus:border-b border-pink-400/50 w-full"
+              />
               {currentTeam === 'teamA' && (
                 <span className="text-[10px] text-white/70 font-bold">فريقكم يمثل الآن!</span>
               )}
@@ -166,9 +190,14 @@ export default function CharadesPage() {
             currentTeam === 'teamB' ? 'border-pink-500 bg-pink-500/10' : 'border-white/10 bg-white/5'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs text-pink-400 font-bold">{teamNames.teamB}</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <input
+                type="text"
+                value={teamNames.teamB}
+                onChange={(e) => setTeamNames((p) => ({ ...p, teamB: e.target.value }))}
+                className="bg-transparent text-xs text-pink-400 font-bold focus:outline-none focus:border-b border-pink-400/50 w-full"
+              />
               {currentTeam === 'teamB' && (
                 <span className="text-[10px] text-white/70 font-bold">فريقكم يمثل الآن!</span>
               )}
@@ -211,7 +240,7 @@ export default function CharadesPage() {
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
             {/* The Secret Card */}
             <div className="p-6 rounded-3xl bg-gradient-to-b from-pink-900/30 to-purple-900/20 border-2 border-pink-500/40 space-y-4 max-w-md mx-auto shadow-xl">
-              <div className="text-5xl">{activeCard.emoji}</div>
+              <div className="text-5xl">{activeCard.emoji || '🎭'}</div>
               <div>
                 <span className="text-xs text-pink-300 font-bold block mb-1">الشخصية المطلوب تمثيلها:</span>
                 <h2 className="text-3xl font-black text-white">{activeCard.name}</h2>
@@ -223,7 +252,7 @@ export default function CharadesPage() {
                   🚫 كلمات ممنوع ذكرها أو النطق بها نهائياً:
                 </span>
                 <div className="flex flex-wrap justify-center gap-1.5">
-                  {activeCard.tabooWords.map((word, idx) => (
+                  {(activeCard.tabooWords || []).map((word, idx) => (
                     <span key={idx} className="text-xs font-bold px-2.5 py-1 rounded-xl bg-red-500/20 text-red-300 border border-red-500/30">
                       {word}
                     </span>
@@ -232,10 +261,12 @@ export default function CharadesPage() {
               </div>
 
               {/* Acting Hint */}
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-xs text-white/70">
-                <span className="text-amber-400 font-bold block mb-1">💡 فكرة للحركات:</span>
-                {activeCard.hint}
-              </div>
+              {activeCard.hint && (
+                <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-xs text-white/70">
+                  <span className="text-amber-400 font-bold block mb-1">💡 فكرة للحركات:</span>
+                  {activeCard.hint}
+                </div>
+              )}
             </div>
 
             {/* Timer and Action Controls */}
@@ -252,13 +283,13 @@ export default function CharadesPage() {
             {timerActive && (
               <div className="space-y-6">
                 <div className="font-mono">
-                  <div className={`text-6xl font-black ${timeLeft <= 10 ? 'text-red-400 animate-ping' : 'text-white'}`}>
+                  <div className={`text-6xl font-black ${timeLeft <= 10 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
                     {timeLeft}s
                   </div>
                   <div className="text-xs text-white/50 mt-1">الوقت المتبقي لتخمين الفريق</div>
                 </div>
 
-                <div className="flex justify-center gap-3">
+                <div className="flex justify-center gap-3 flex-wrap">
                   <button
                     onClick={handleCorrectGuess}
                     className="px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center gap-2 shadow-lg transition-all"

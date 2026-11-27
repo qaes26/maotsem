@@ -9,6 +9,7 @@ import {
   getCharadesCards,
 } from './data/questions.js';
 import { generateFreshRound } from './data/questionGenerator.js';
+import { getStoredCustomQuestions } from './admin.js';
 import db from './db.js';
 
 const router = Router();
@@ -79,12 +80,19 @@ router.get('/categories', async (req, res) => {
 router.get('/questions', async (req, res) => {
   const { category, subcategory, limit } = req.query;
 
-  // Try Supabase first
-  const supaQuestions = await db.getAllQuestions();
-  let list = supaQuestions || getQuestions();
+  // Merge base questions + local custom questions + Supabase questions
+  const supaQuestions = await db.getAllQuestions().catch(() => null);
+  const customLocal = getStoredCustomQuestions();
+  const byId = new Map();
+  for (const q of getQuestions()) byId.set(q.id, q);
+  for (const q of customLocal) byId.set(q.id, q);
+  if (Array.isArray(supaQuestions)) {
+    for (const q of supaQuestions) byId.set(q.id, q);
+  }
+  let list = Array.from(byId.values());
 
   if (category) {
-    list = list.filter(q => q.category === category);
+    list = list.filter(q => q.category === category || q.subcategory === category);
   }
   if (subcategory) {
     list = list.filter(q => q.subcategory === subcategory);

@@ -21,7 +21,7 @@ export const THEME_PRESETS = [
       warning: '#f39c12',
       textColor: '#ffffff',
       textMuted: '#94a3b8',
-      borderRadius: 14,
+      borderRadius: 16,
       fontFamily: 'Cairo',
     },
   },
@@ -44,7 +44,7 @@ export const THEME_PRESETS = [
       warning: '#ffb800',
       textColor: '#ffffff',
       textMuted: '#a5b4fc',
-      borderRadius: 16,
+      borderRadius: 18,
       fontFamily: 'Tajawal',
     },
   },
@@ -67,7 +67,7 @@ export const THEME_PRESETS = [
       warning: '#eab308',
       textColor: '#ffffff',
       textMuted: '#86efac',
-      borderRadius: 12,
+      borderRadius: 14,
       fontFamily: 'Cairo',
     },
   },
@@ -90,7 +90,7 @@ export const THEME_PRESETS = [
       warning: '#f59e0b',
       textColor: '#ffffff',
       textMuted: '#fda4af',
-      borderRadius: 14,
+      borderRadius: 16,
       fontFamily: 'Tajawal',
     },
   },
@@ -113,7 +113,7 @@ export const THEME_PRESETS = [
       warning: '#fb923c',
       textColor: '#fafafa',
       textMuted: '#a1a1aa',
-      borderRadius: 10,
+      borderRadius: 12,
       fontFamily: 'IBM Plex Sans Arabic',
     },
   },
@@ -136,7 +136,7 @@ export const THEME_PRESETS = [
       warning: '#facc15',
       textColor: '#ffffff',
       textMuted: '#93c5fd',
-      borderRadius: 16,
+      borderRadius: 18,
       fontFamily: 'Cairo',
     },
   },
@@ -159,13 +159,34 @@ export const THEME_PRESETS = [
       warning: '#eab308',
       textColor: '#ffffff',
       textMuted: '#fdba74',
-      borderRadius: 14,
+      borderRadius: 16,
       fontFamily: 'Cairo',
     },
   },
 ];
 
-export const defaultTheme = THEME_PRESETS[0].colors;
+export const defaultTheme = {
+  ...THEME_PRESETS[0].colors,
+  logoUrl: '',
+  logoEmoji: '',
+  siteName: 'هخلص عليك',
+  siteSubtitle: 'المنصة التنافسية الكبرى',
+  heroBadge: 'المنصة رقم #1 للألعاب التفاعلية والمسابقات باللغة العربية',
+  heroTitle: 'أهلاً بك في هخلص عليك',
+  heroDescription: 'مشروع متكامل ومحتوى متجدد باستمرار: لوحة الـ 6 فئات، المزاد الكبير، أهداف سكتش، تمثيل شخصيات، مافيا، وتحدي التشكيلة!',
+  footerText: 'صُنع لمحبي المسابقات والتحدي',
+  cardStyle: 'glass', // 'glass' | 'solid' | 'neon' | 'minimal'
+  bgPattern: 'gradient', // 'gradient' | 'grid' | 'dots' | 'aurora'
+  buttonStyle: 'gradient', // 'gradient' | 'glow' | 'outline'
+  fontSizeScale: 100,
+  glassBlur: 16,
+  cardBorderWidth: 1,
+  animationsEnabled: true,
+  hiddenModes: [],
+  customModeTitles: {},
+  enabledEffects: [],
+  customCss: '',
+};
 
 export const normalizeTheme = (raw = {}) => {
   return {
@@ -185,8 +206,59 @@ export const normalizeTheme = (raw = {}) => {
     borderRadius: raw.borderRadius !== undefined ? Number(raw.borderRadius) : defaultTheme.borderRadius,
     fontFamily: raw.fontFamily || defaultTheme.fontFamily,
     logoUrl: raw.logoUrl || '',
+    logoEmoji: raw.logoEmoji || '',
+    siteName: raw.siteName || defaultTheme.siteName,
+    siteSubtitle: raw.siteSubtitle || defaultTheme.siteSubtitle,
+    heroBadge: raw.heroBadge || defaultTheme.heroBadge,
+    heroTitle: raw.heroTitle || defaultTheme.heroTitle,
+    heroDescription: raw.heroDescription || defaultTheme.heroDescription,
+    footerText: raw.footerText || defaultTheme.footerText,
+    cardStyle: raw.cardStyle || defaultTheme.cardStyle,
+    bgPattern: raw.bgPattern || defaultTheme.bgPattern,
+    buttonStyle: raw.buttonStyle || defaultTheme.buttonStyle,
+    fontSizeScale: raw.fontSizeScale !== undefined ? Number(raw.fontSizeScale) : defaultTheme.fontSizeScale,
+    glassBlur: raw.glassBlur !== undefined ? Number(raw.glassBlur) : defaultTheme.glassBlur,
+    cardBorderWidth: raw.cardBorderWidth !== undefined ? Number(raw.cardBorderWidth) : defaultTheme.cardBorderWidth,
+    animationsEnabled: raw.animationsEnabled !== undefined ? Boolean(raw.animationsEnabled) : defaultTheme.animationsEnabled,
+    hiddenModes: Array.isArray(raw.hiddenModes) ? raw.hiddenModes : [],
+    customModeTitles: raw.customModeTitles && typeof raw.customModeTitles === 'object' ? raw.customModeTitles : {},
+    enabledEffects: Array.isArray(raw.enabledEffects) ? raw.enabledEffects : [],
+    customCss: typeof raw.customCss === 'string' ? raw.customCss : '',
   };
 };
+
+export const DESIGN_EFFECT_BLOCKS = [
+  {
+    id: 'neon-cards',
+    name: 'توهج نيون للبطاقات',
+    desc: 'إطار مضيء متوهج حول البطاقات عند المرور عليها',
+    css: `.glass-card:hover { box-shadow: 0 0 28px color-mix(in srgb, var(--color-accent) 35%, transparent) !important; border-color: var(--color-accent) !important; }`,
+  },
+  {
+    id: 'gold-buttons',
+    name: 'أزرار ثلاثية الأبعاد بارزة',
+    desc: 'ظل سفلي عميق للأزرار الرئيسية لإحساس الألعاب',
+    css: `button.gradient-accent, .gradient-accent { box-shadow: 0 6px 0 color-mix(in srgb, var(--color-accent) 55%, #000), 0 12px 24px rgba(0,0,0,0.4) !important; }`,
+  },
+  {
+    id: 'rounded-pill',
+    name: 'حواف فائقة الاستدارة',
+    desc: 'تحويل البطاقات والأزرار إلى أشكال دائرية ناعمة',
+    css: `.glass-card { border-radius: 28px !important; }`,
+  },
+  {
+    id: 'sharp-esports',
+    name: 'نمط الرياضات الإلكترونية الحاد',
+    desc: 'زوايا حادة عصرية للبطولات',
+    css: `.glass-card, button, input { border-radius: 6px !important; }`,
+  },
+  {
+    id: 'high-contrast',
+    name: 'تباين عالٍ واضح',
+    desc: 'تغميق خلفيات البطاقات لوضوح أكبر للنصوص',
+    css: `.glass-card { background: rgba(6, 12, 28, 0.85) !important; border-color: rgba(255,255,255,0.18) !important; }`,
+  },
+];
 
 export const applyThemeToCSS = (theme) => {
   if (typeof document === 'undefined') return;
@@ -207,10 +279,57 @@ export const applyThemeToCSS = (theme) => {
   root.style.setProperty('--color-text', t.textColor);
   root.style.setProperty('--color-text-muted', t.textMuted);
   root.style.setProperty('--border-radius', `${t.borderRadius}px`);
+  root.style.setProperty('--glass-blur', `${t.glassBlur}px`);
+  root.style.setProperty('--card-border-width', `${t.cardBorderWidth}px`);
+  root.style.fontSize = `${Math.max(85, Math.min(120, t.fontSizeScale))}%`;
 
   if (t.fontFamily) {
     document.body.style.fontFamily = `"${t.fontFamily}", Cairo, sans-serif`;
   }
+  if (t.siteName) {
+    document.title = `${t.siteName} - لعبة المعرفة والتحدي`;
+  }
+
+  // Generate dynamic style rules for cardStyle, bgPattern, buttonStyle, effects & customCss
+  let styleTag = document.getElementById('admin-dynamic-theme-css');
+  if (!styleTag) {
+    styleTag = document.createElement('style');
+    styleTag.id = 'admin-dynamic-theme-css';
+    document.head.appendChild(styleTag);
+  }
+
+  const cardRules = {
+    glass: `.glass-card { background: color-mix(in srgb, var(--color-surface) 45%, transparent); backdrop-filter: blur(${t.glassBlur}px); border-width: ${t.cardBorderWidth}px; border-radius: ${t.borderRadius}px; }`,
+    solid: `.glass-card { background: var(--color-secondary); backdrop-filter: none; border-width: ${t.cardBorderWidth}px; border-radius: ${t.borderRadius}px; }`,
+    neon: `.glass-card { background: rgba(10, 14, 30, 0.78); backdrop-filter: blur(${t.glassBlur}px); border: ${Math.max(1, t.cardBorderWidth)}px solid color-mix(in srgb, var(--color-accent) 45%, transparent); box-shadow: 0 0 24px color-mix(in srgb, var(--color-accent) 18%, transparent); border-radius: ${t.borderRadius}px; }`,
+    minimal: `.glass-card { background: color-mix(in srgb, var(--color-primary-light) 60%, transparent); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.06); box-shadow: none; border-radius: ${t.borderRadius}px; }`,
+  };
+
+  const bgRules = {
+    gradient: `.gradient-bg { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-surface-dark) 100%); }`,
+    grid: `.gradient-bg { background-color: var(--color-primary); background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 36px 36px; }`,
+    dots: `.gradient-bg { background-color: var(--color-primary); background-image: radial-gradient(color-mix(in srgb, var(--color-accent) 20%, transparent) 1.5px, transparent 1.5px); background-size: 24px 24px; }`,
+    aurora: `.gradient-bg { background: radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 45%), radial-gradient(circle at 85% 80%, color-mix(in srgb, var(--color-surface) 75%, transparent), transparent 50%), var(--color-primary); }`,
+  };
+
+  const buttonRules = {
+    gradient: '',
+    glow: `.gradient-accent { box-shadow: 0 0 22px color-mix(in srgb, var(--color-accent) 55%, transparent); }`,
+    outline: `.gradient-accent { background: transparent !important; border: 2px solid var(--color-accent) !important; color: var(--color-accent) !important; }`,
+  };
+
+  const blocksCss = (t.enabledEffects || [])
+    .map((id) => DESIGN_EFFECT_BLOCKS.find((b) => b.id === id)?.css || '')
+    .join('\n');
+
+  styleTag.textContent = [
+    cardRules[t.cardStyle] || '',
+    bgRules[t.bgPattern] || '',
+    buttonRules[t.buttonStyle] || '',
+    !t.animationsEnabled ? `*, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }` : '',
+    blocksCss,
+    t.customCss || '',
+  ].join('\n');
 };
 
 const getSavedLocalTheme = () => {
@@ -226,12 +345,10 @@ const useThemeStore = create((set, get) => ({
   isLoading: false,
 
   loadTheme: async () => {
-    // 1. Immediately apply cached local theme for zero latency
     const local = getSavedLocalTheme();
     applyThemeToCSS(local);
     set({ theme: local, isLoading: true });
 
-    // 2. Fetch remote theme from Supabase / Backend
     try {
       const remote = await gameApi.getTheme();
       if (remote) {

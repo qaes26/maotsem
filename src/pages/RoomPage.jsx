@@ -244,6 +244,12 @@ export default function RoomPage() {
   };
 
   const activeRoomData = roomData || localRoom;
+  const combinedChat = React.useMemo(() => {
+    const base = activeRoomData?.chat || [];
+    const seen = new Set(base.map((m) => `${m.sender}|${m.text}`));
+    const extra = (messages || []).filter((m) => !seen.has(`${m.sender}|${m.text}`));
+    return [...base, ...extra];
+  }, [activeRoomData?.chat, messages]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
@@ -485,7 +491,7 @@ export default function RoomPage() {
 
               {/* Messages list */}
               <div className="space-y-2 overflow-y-auto max-h-[320px] pr-1">
-                {(activeRoomData.chat || []).map((msg, idx) => (
+                {combinedChat.map((msg, idx) => (
                   <div key={idx} className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-xs">
                     <span className="font-bold text-[var(--color-accent)] block mb-0.5">
                       {msg.sender}:
@@ -493,7 +499,7 @@ export default function RoomPage() {
                     <span className="text-white/80">{msg.text}</span>
                   </div>
                 ))}
-                {(!activeRoomData.chat || activeRoomData.chat.length === 0) && (
+                {combinedChat.length === 0 && (
                   <div className="text-center text-xs text-white/30 py-10">
                     لا توجد رسائل بعد... أرسل رسالة ترحيب أو تفاعلاً!
                   </div>

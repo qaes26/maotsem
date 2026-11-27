@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaGavel,
   FaHome,
-  FaTrophy,
   FaClock,
   FaCheck,
   FaTimes,
-  FaCrown,
-  FaUsers,
-  FaRedo,
   FaVolumeUp,
   FaVolumeMute,
   FaArrowLeft,
@@ -35,8 +30,7 @@ export default function AuctionPage() {
 
   // Bidding state
   const [currentBid, setCurrentBid] = useState(3);
-  const [highestBidder, setHighestBidder] = useState('teamA'); // 'teamA' | 'teamB'
-  const [biddingTurn, setBiddingTurn] = useState('teamA');
+  const [highestBidder, setHighestBidder] = useState(null); // null until first bid
 
   // Challenge timer state
   const [timeLeft, setTimeLeft] = useState(45);
@@ -54,10 +48,12 @@ export default function AuctionPage() {
     });
   }, []);
 
+  const activeChallenge = challenges[currentChallengeIndex];
+
   // Timer countdown
   useEffect(() => {
     let interval = null;
-    if (timerActive && timeLeft > 0) {
+    if (gameState === 'challenge' && timerActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((t) => {
           if (t <= 5 && t > 1) {
@@ -65,29 +61,28 @@ export default function AuctionPage() {
           } else if (t % 5 === 0) {
             sound.playTick(false);
           }
-          return t - 1;
+          return Math.max(0, t - 1);
         });
       }, 1000);
-    } else if (timerActive && timeLeft === 0) {
+    } else if (gameState === 'challenge' && timerActive && timeLeft === 0) {
       setTimerActive(false);
       handleTimeExpired();
     }
     return () => clearInterval(interval);
-  }, [timerActive, timeLeft]);
-
-  const activeChallenge = challenges[currentChallengeIndex];
+  }, [gameState, timerActive, timeLeft]);
 
   // Raise bid
   const handleRaiseBid = (team) => {
     sound.playGavel();
-    const newBid = currentBid + 1;
-    setCurrentBid(newBid);
+    const startBid = activeChallenge?.startingBid || 3;
+    const nextBid = highestBidder === null ? startBid : currentBid + 1;
+    setCurrentBid(nextBid);
     setHighestBidder(team);
-    setBiddingTurn(team === 'teamA' ? 'teamB' : 'teamA');
   };
 
-  // Pass bid (accept current bid and lock in challenge)
+  // Pass bid (opponent concedes to highestBidder)
   const handlePassBid = (passingTeam) => {
+    if (!highestBidder || highestBidder === passingTeam) return;
     sound.playWhistle();
     setGameState('challenge');
     setTimeLeft(activeChallenge?.timeSeconds || 45);
@@ -107,7 +102,6 @@ export default function AuctionPage() {
     }
     setCheckedAnswers(next);
 
-    // If target bid reached!
     if (next.size >= currentBid) {
       setTimerActive(false);
       handleChallengeWon();
@@ -115,7 +109,9 @@ export default function AuctionPage() {
   };
 
   const handleChallengeWon = () => {
+    if (gameState !== 'challenge' || !highestBidder) return;
     sound.playFanfare();
+    setTimerActive(false);
     setChallengeResult('won');
     setGameState('result');
     const reward = activeChallenge?.pointsReward || 500;
@@ -126,7 +122,9 @@ export default function AuctionPage() {
   };
 
   const handleTimeExpired = () => {
+    if (gameState !== 'challenge' || !highestBidder) return;
     sound.playWrong();
+    setTimerActive(false);
     setChallengeResult('lost');
     setGameState('result');
     const penalty = Math.round((activeChallenge?.pointsReward || 500) / 2);
@@ -143,8 +141,7 @@ export default function AuctionPage() {
     setCurrentChallengeIndex(nextIdx);
     setCurrentBid(challenges[nextIdx]?.startingBid || 3);
     setGameState('bidding');
-    setHighestBidder('teamA');
-    setBiddingTurn('teamA');
+    setHighestBidder(null);
     setCheckedAnswers(new Set());
     setChallengeResult(null);
   };
@@ -209,9 +206,14 @@ export default function AuctionPage() {
               : 'border-white/10 bg-white/5'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-amber-400">{teamNames.teamA}</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <input
+                type="text"
+                value={teamNames.teamA}
+                onChange={(e) => setTeamNames((p) => ({ ...p, teamA: e.target.value }))}
+                className="bg-transparent text-sm font-bold text-amber-400 focus:outline-none focus:border-b border-amber-400/50 w-full"
+              />
               <div className="text-[10px] text-white/50">الفريق الأول</div>
             </div>
             <div className="text-3xl font-black font-mono text-amber-400">{scores.teamA}</div>
@@ -225,9 +227,14 @@ export default function AuctionPage() {
               : 'border-white/10 bg-white/5'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-cyan-400">{teamNames.teamB}</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <input
+                type="text"
+                value={teamNames.teamB}
+                onChange={(e) => setTeamNames((p) => ({ ...p, teamB: e.target.value }))}
+                className="bg-transparent text-sm font-bold text-cyan-400 focus:outline-none focus:border-b border-cyan-400/50 w-full"
+              />
               <div className="text-[10px] text-white/50">الفريق الثاني</div>
             </div>
             <div className="text-3xl font-black font-mono text-cyan-400">{scores.teamB}</div>
@@ -251,15 +258,23 @@ export default function AuctionPage() {
         {gameState === 'bidding' && (
           <div className="space-y-6">
             <div className="text-center space-y-2">
-              <div className="text-xs text-white/60">أعلى مزاد حالي:</div>
+              <div className="text-xs text-white/60">
+                {highestBidder ? 'أعلى مزاد حالي:' : 'يبدأ المزاد من:'}
+              </div>
               <div className="text-6xl font-black font-mono text-amber-400 animate-pulse-glow inline-block p-4 rounded-3xl bg-amber-500/10 border-2 border-amber-500/40">
                 {currentBid}
               </div>
               <div className="text-sm font-bold text-white">
-                باسم:{' '}
-                <span className={highestBidder === 'teamA' ? 'text-amber-400' : 'text-cyan-400'}>
-                  {teamNames[highestBidder]}
-                </span>
+                {highestBidder ? (
+                  <>
+                    باسم:{' '}
+                    <span className={highestBidder === 'teamA' ? 'text-amber-400' : 'text-cyan-400'}>
+                      {teamNames[highestBidder]}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-white/50">اضغط على "أزايد" لافتتاح المزاد</span>
+                )}
               </div>
             </div>
 
@@ -269,16 +284,18 @@ export default function AuctionPage() {
                 <h3 className="font-bold text-amber-400">{teamNames.teamA}</h3>
                 <div className="flex gap-2 justify-center">
                   <button
+                    disabled={highestBidder === 'teamA'}
                     onClick={() => handleRaiseBid('teamA')}
-                    className="flex-1 py-3 px-4 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-black shadow-lg transition-all"
+                    className="flex-1 py-3 px-4 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-black shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    أزايد بـ ({currentBid + 1}) 🔨
+                    {highestBidder === null ? `أبدأ المزاد (${currentBid}) 🔨` : `أزايد بـ (${currentBid + 1}) 🔨`}
                   </button>
                   <button
+                    disabled={!highestBidder || highestBidder === 'teamA'}
                     onClick={() => handlePassBid('teamA')}
-                    className="py-3 px-4 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/20 text-white transition-all"
+                    className="py-3 px-4 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/20 text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    انسحاب (تثبيت المزاد)
+                    انسحاب (تثبيت للخصم)
                   </button>
                 </div>
               </div>
@@ -287,16 +304,18 @@ export default function AuctionPage() {
                 <h3 className="font-bold text-cyan-400">{teamNames.teamB}</h3>
                 <div className="flex gap-2 justify-center">
                   <button
+                    disabled={highestBidder === 'teamB'}
                     onClick={() => handleRaiseBid('teamB')}
-                    className="flex-1 py-3 px-4 rounded-xl font-black text-sm bg-cyan-500 hover:bg-cyan-400 text-black shadow-lg transition-all"
+                    className="flex-1 py-3 px-4 rounded-xl font-black text-sm bg-cyan-500 hover:bg-cyan-400 text-black shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    أزايد بـ ({currentBid + 1}) 🔨
+                    {highestBidder === null ? `أبدأ المزاد (${currentBid}) 🔨` : `أزايد بـ (${currentBid + 1}) 🔨`}
                   </button>
                   <button
+                    disabled={!highestBidder || highestBidder === 'teamB'}
                     onClick={() => handlePassBid('teamB')}
-                    className="py-3 px-4 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/20 text-white transition-all"
+                    className="py-3 px-4 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/20 text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    انسحاب (تثبيت المزاد)
+                    انسحاب (تثبيت للخصم)
                   </button>
                 </div>
               </div>
@@ -324,19 +343,19 @@ export default function AuctionPage() {
               {/* Countdown Timer */}
               <div className="flex items-center gap-2 font-mono">
                 <FaClock className="text-amber-400 text-xl" />
-                <span className={`text-4xl font-black ${timeLeft <= 10 ? 'text-red-400 animate-ping' : 'text-white'}`}>
+                <span className={`text-4xl font-black ${timeLeft <= 10 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
                   {timeLeft}s
                 </span>
               </div>
             </div>
 
-            {/* Checklist of Valid Answers (Interactive Grid for Referee/Team) */}
+            {/* Checklist of Valid Answers */}
             <div className="space-y-2">
               <div className="text-xs font-bold text-white/60 mb-1">
-                قائمة الإجابات المعتمدة (اضغط على الاسم عند ذكره من الفريق):
+                قائمة الإجابات المعتمدة (اضغط على الإجابة عند ذكرها من الفريق):
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[360px] overflow-y-auto pr-1">
-                {activeChallenge.validAnswers.map((item, idx) => {
+                {(activeChallenge.validAnswers || []).map((item, idx) => {
                   const isChecked = checkedAnswers.has(item);
                   return (
                     <button
@@ -349,9 +368,11 @@ export default function AuctionPage() {
                       }`}
                     >
                       <span>{item}</span>
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                        isChecked ? 'bg-emerald-500 text-black' : 'bg-white/10 text-white/40'
-                      }`}>
+                      <span
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                          isChecked ? 'bg-emerald-500 text-black' : 'bg-white/10 text-white/40'
+                        }`}
+                      >
                         {isChecked ? '✓' : ''}
                       </span>
                     </button>
@@ -361,7 +382,7 @@ export default function AuctionPage() {
             </div>
 
             {/* Manual End Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+            <div className="flex items-center justify-between gap-3 flex-wrap pt-4 border-t border-white/10">
               <button
                 onClick={handleChallengeWon}
                 className="px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition-all flex items-center gap-2 shadow-lg"
@@ -384,9 +405,7 @@ export default function AuctionPage() {
         {/* PHASE 3: RESULT */}
         {gameState === 'result' && (
           <div className="p-8 text-center space-y-6">
-            <div className="text-6xl">
-              {challengeResult === 'won' ? '🎉' : '💥'}
-            </div>
+            <div className="text-6xl">{challengeResult === 'won' ? '🎉' : '💥'}</div>
 
             <div>
               <h3 className="text-3xl font-black text-white mb-2">

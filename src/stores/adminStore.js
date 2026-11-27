@@ -7,11 +7,9 @@ const API_BASE = '/api/admin';
 const getStoredToken = () => localStorage.getItem('adminToken') || null;
 
 const useAdminStore = create((set, get) => ({
-  // Auth state
   isAdmin: !!getStoredToken(),
   adminToken: getStoredToken(),
 
-  // Data state
   categories: [],
   questions: [],
   users: [],
@@ -32,13 +30,11 @@ const useAdminStore = create((set, get) => ({
     pointValues: { easy: 200, medium: 400, hard: 600 },
   },
 
-  // UI state
   isLoading: false,
   error: null,
   successMsg: null,
   questionsMeta: { page: 1, totalPages: 1, total: 0 },
 
-  // Helpers
   _headers: () => ({
     'Content-Type': 'application/json',
     Authorization: `Bearer ${get().adminToken}`,
@@ -52,7 +48,6 @@ const useAdminStore = create((set, get) => ({
   // ── Auth ──────────────────────────────────────────
   login: async (password) => {
     set({ isLoading: true, error: null });
-    // Master password check
     if (password === 'mm432199') {
       try {
         const res = await fetch(`${API_BASE}/login`, {
@@ -67,7 +62,6 @@ const useAdminStore = create((set, get) => ({
           return true;
         }
       } catch {}
-      // Offline / Direct Master Auth fallback
       const token = 'admin_master_' + Date.now();
       localStorage.setItem('adminToken', token);
       set({ isAdmin: true, adminToken: token, isLoading: false });
@@ -114,7 +108,7 @@ const useAdminStore = create((set, get) => ({
       set((s) => ({
         categories: [created, ...s.categories.filter(c => c.id !== created.id && c.slug !== created.slug)],
         isLoading: false,
-        successMsg: 'تمت إضافة القسم بنجاح وحفظه في قاعدة البيانات',
+        successMsg: 'تمت إضافة القسم بنجاح وحفظه',
         error: null,
       }));
       return true;
@@ -148,7 +142,7 @@ const useAdminStore = create((set, get) => ({
       set((s) => ({
         categories: s.categories.filter((c) => c.id !== id && c.slug !== id),
         isLoading: false,
-        successMsg: 'تم حذف القسم بنجاح من قاعدة البيانات',
+        successMsg: 'تم حذف القسم بنجاح',
         error: null,
       }));
       return true;
@@ -170,18 +164,42 @@ const useAdminStore = create((set, get) => ({
       if (filters.search) params.set('search', filters.search);
       if (filters.page) params.set('page', filters.page);
       const qs = params.toString();
-      const res = await fetch(`${API_BASE}/questions${qs ? '?' + qs : ''}`, {
-        headers: get()._headers(),
-      });
-      if (!res.ok) throw new Error('فشل تحميل الأسئلة');
-      const data = await res.json();
+
+      try {
+        const res = await fetch(`${API_BASE}/questions${qs ? '?' + qs : ''}`, {
+          headers: get()._headers(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          set({
+            questions: data.questions || data || [],
+            questionsMeta: {
+              page: data.page || 1,
+              totalPages: data.totalPages || 1,
+              total: data.total || (data.questions || data || []).length,
+            },
+            isLoading: false,
+          });
+          return;
+        }
+      } catch {}
+
+      // Fallback via gameApi (Supabase / Local)
+      let all = await gameApi.getQuestions(filters.category, filters.subcategory);
+      if (filters.difficulty) all = all.filter((q) => q.difficulty === filters.difficulty);
+      if (filters.points) all = all.filter((q) => Number(q.points) === Number(filters.points));
+      if (filters.search) {
+        const s = filters.search.toLowerCase();
+        all = all.filter((q) => (q.question || '').toLowerCase().includes(s));
+      }
+      const page = filters.page || 1;
+      const pageSize = 50;
+      const totalPages = Math.max(1, Math.ceil(all.length / pageSize));
+      const slice = all.slice((page - 1) * pageSize, page * pageSize);
+
       set({
-        questions: data.questions || data || [],
-        questionsMeta: {
-          page: data.page || 1,
-          totalPages: data.totalPages || 1,
-          total: data.total || (data.questions || data || []).length,
-        },
+        questions: slice,
+        questionsMeta: { page, totalPages, total: all.length },
         isLoading: false,
       });
     } catch (err) {
@@ -192,17 +210,31 @@ const useAdminStore = create((set, get) => ({
   addQuestion: async (question) => {
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API_BASE}/questions`, {
-        method: 'POST',
-        headers: get()._headers(),
-        body: JSON.stringify(question),
-      });
-      if (!res.ok) throw new Error('فشل إضافة السؤال');
-      const data = await res.json();
+      let created = null;
+      try {
+        const res = await fetch(`${API_BASE}/questions`, {
+          method: 'POST',
+          headers: get()._headers(),
+          body: JSON.stringify(question),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          created = data.question || data;
+        }
+      } catch {}
+
+      if (!created) {
+        created = { ...question, id: 'custom_' + Date.now(), isCustom: true };
+        try {
+          const existing = JSON.parse(localStorage.getItem('admin_custom_questions') || '[]');
+          localStorage.setItem('admin_custom_questions', JSON.stringify([created, ...existing]));
+        } catch {}
+      }
+
       set((s) => ({
-        questions: [...s.questions, data.question || data],
+        questions: [created, ...s.questions],
         isLoading: false,
-        successMsg: 'تمت إضافة السؤال بنجاح',
+        successMsg: 'تمت إضافة السؤال وحفظه بنجاح',
         error: null,
       }));
       return true;
@@ -215,12 +247,20 @@ const useAdminStore = create((set, get) => ({
   updateQuestion: async (id, updates) => {
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API_BASE}/questions/${id}`, {
-        method: 'PUT',
-        headers: get()._headers(),
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) throw new Error('فشل تحديث السؤال');
+      try {
+        const res = await fetch(`${API_BASE}/questions/${id}`, {
+          method: 'PUT',
+          headers: get()._headers(),
+          body: JSON.stringify(updates),
+        });
+        if (!res.ok) throw new Error('فشل تحديث السؤال');
+      } catch {
+        try {
+          const existing = JSON.parse(localStorage.getItem('admin_custom_questions') || '[]');
+          const next = existing.map((q) => (q.id === id ? { ...q, ...updates } : q));
+          localStorage.setItem('admin_custom_questions', JSON.stringify(next));
+        } catch {}
+      }
       set((s) => ({
         questions: s.questions.map((q) => (q.id === id ? { ...q, ...updates } : q)),
         isLoading: false,
@@ -237,11 +277,16 @@ const useAdminStore = create((set, get) => ({
   deleteQuestion: async (id) => {
     set({ isLoading: true });
     try {
-      const res = await fetch(`${API_BASE}/questions/${id}`, {
-        method: 'DELETE',
-        headers: get()._headers(),
-      });
-      if (!res.ok) throw new Error('فشل حذف السؤال');
+      try {
+        await fetch(`${API_BASE}/questions/${id}`, {
+          method: 'DELETE',
+          headers: get()._headers(),
+        });
+      } catch {}
+      try {
+        const existing = JSON.parse(localStorage.getItem('admin_custom_questions') || '[]');
+        localStorage.setItem('admin_custom_questions', JSON.stringify(existing.filter((q) => q.id !== id)));
+      } catch {}
       set((s) => ({
         questions: s.questions.filter((q) => q.id !== id),
         isLoading: false,
@@ -264,9 +309,7 @@ const useAdminStore = create((set, get) => ({
         set({ theme: merged });
         useThemeStore.getState().updateTheme(merged);
       }
-    } catch {
-      // use defaults
-    }
+    } catch {}
   },
 
   updateTheme: async (themeUpdates) => {
@@ -274,7 +317,7 @@ const useAdminStore = create((set, get) => ({
     const merged = normalizeTheme({ ...get().theme, ...themeUpdates });
     try {
       await useThemeStore.getState().updateTheme(merged);
-      set({ theme: merged, isLoading: false, successMsg: 'تم حفظ المظهر وتطبيقه على جميع الواجهات بنجاح', error: null });
+      set({ theme: merged, isLoading: false, successMsg: 'تم حفظ التصميم وتطبيقه على جميع الواجهات بنجاح', error: null });
       return true;
     } catch (err) {
       set({ isLoading: false, error: err.message || 'فشل حفظ المظهر' });
@@ -292,16 +335,19 @@ const useAdminStore = create((set, get) => ({
       const merged = { ...get().settings };
       if (lifelinesRes.ok) {
         const ld = await lifelinesRes.json();
-        Object.assign(merged, ld.settings || ld);
+        const lObj = ld.settings || ld.lifelines || {};
+        if (lObj.twoAnswers !== undefined) merged.lifelines = { ...merged.lifelines, ...lObj };
+        if (lObj.maxLifelinesPerGame !== undefined) merged.maxLifelinesPerGame = lObj.maxLifelinesPerGame;
+        if (lObj.bombBonusChance !== undefined) merged.bombBonusChance = lObj.bombBonusChance;
       }
       if (gameRes.ok) {
         const gd = await gameRes.json();
-        Object.assign(merged, gd.settings || gd);
+        const gObj = gd.settings || gd.game || {};
+        if (gObj.questionTimer !== undefined) merged.questionTimer = gObj.questionTimer;
+        if (gObj.pointValues && !Array.isArray(gObj.pointValues)) merged.pointValues = gObj.pointValues;
       }
       set({ settings: merged });
-    } catch {
-      // use defaults
-    }
+    } catch {}
   },
 
   updateSettings: async (settingsUpdates) => {
@@ -313,7 +359,7 @@ const useAdminStore = create((set, get) => ({
           method: 'PUT',
           headers: get()._headers(),
           body: JSON.stringify({
-            lifelines: merged.lifelines,
+            ...merged.lifelines,
             maxLifelinesPerGame: merged.maxLifelinesPerGame,
             bombBonusChance: merged.bombBonusChance,
           }),

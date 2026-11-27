@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   FaPenNib,
   FaMicrophone,
   FaHome,
-  FaTrophy,
-  FaPlay,
-  FaCheck,
-  FaTimes,
   FaFutbol,
-  FaArrowLeft,
-  FaVolumeUp,
-  FaVolumeMute,
   FaLightbulb,
 } from 'react-icons/fa';
 import sound from '../utils/soundEffects';
@@ -46,6 +39,12 @@ export default function SketchPage() {
     gameApi.getCommentary().then((data) => {
       if (data) setCommentaries(data);
     });
+
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
   }, []);
 
   const activeSketch = sketches[currentSketchIdx];
@@ -71,6 +70,7 @@ export default function SketchPage() {
   };
 
   const handleNextItem = () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
     setIsCorrect(null);
@@ -84,7 +84,6 @@ export default function SketchPage() {
     }
   };
 
-  // Read quote with browser speech synthesis if available
   const handlePlayVoice = (text) => {
     sound.playMicClick();
     if ('speechSynthesis' in window) {
@@ -96,6 +95,8 @@ export default function SketchPage() {
       window.speechSynthesis.speak(utterance);
     }
   };
+
+  const knownDiagramTypes = ['corner-cutback', 'solo-dribble', 'bicycle-kick', 'header-corner', 'tiki-taka-counter'];
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
@@ -120,15 +121,13 @@ export default function SketchPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/')}
-            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold flex items-center gap-2 transition-all border border-white/10"
-          >
-            <FaHome />
-            <span>الرئيسية</span>
-          </button>
-        </div>
+        <button
+          onClick={() => navigate('/')}
+          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold flex items-center gap-2 transition-all border border-white/10"
+        >
+          <FaHome />
+          <span>الرئيسية</span>
+        </button>
       </div>
 
       {/* Mode Switcher Tabs */}
@@ -138,6 +137,7 @@ export default function SketchPage() {
             setActiveTab('sketch');
             setSelectedOption(null);
             setIsAnswerSubmitted(false);
+            setShowHint(false);
           }}
           className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
             activeTab === 'sketch'
@@ -146,7 +146,7 @@ export default function SketchPage() {
           }`}
         >
           <FaPenNib />
-          <span>أهداف سكتش (Goal Sketch)</span>
+          <span>أهداف سكتش</span>
         </button>
 
         <button
@@ -154,6 +154,7 @@ export default function SketchPage() {
             setActiveTab('commentary');
             setSelectedOption(null);
             setIsAnswerSubmitted(false);
+            setShowHint(false);
           }}
           className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
             activeTab === 'commentary'
@@ -162,7 +163,7 @@ export default function SketchPage() {
           }`}
         >
           <FaMicrophone />
-          <span>صوت المعلق (Commentary)</span>
+          <span>صوت المعلق</span>
         </button>
       </div>
 
@@ -218,8 +219,12 @@ export default function SketchPage() {
 
           {/* Visual Pitch SVG Sketch Canvas */}
           <div className="relative rounded-3xl overflow-hidden border-2 border-emerald-500/30 bg-[#0a3320] p-6 min-h-[300px] flex items-center justify-center shadow-inner">
-            {/* SVG Pitch and trajectory lines */}
             <svg viewBox="0 0 100 60" className="w-full max-w-2xl h-auto drop-shadow-lg">
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+                </marker>
+              </defs>
               {/* Pitch borders */}
               <rect x="5" y="5" width="90" height="50" rx="2" fill="#0d422a" stroke="#ffffff30" strokeWidth="0.8" />
               {/* Half line */}
@@ -233,22 +238,18 @@ export default function SketchPage() {
               <rect x="3" y="24" width="2" height="12" fill="#ffffff60" />
               <rect x="95" y="24" width="2" height="12" fill="#ffffff60" />
 
-              {/* Dynamic trajectory based on sketch type */}
               {activeSketch.diagram?.type === 'corner-cutback' && (
                 <g>
-                  {/* Corner kick path */}
                   <path d="M 95 5 Q 90 25 86 35" fill="none" stroke="#fbbf24" strokeWidth="1.4" strokeDasharray="2,1" />
                   <circle cx="95" cy="5" r="1.8" fill="#e11d48" />
-                  {/* Striker finish into goal */}
-                  <line x1="86" y1="35" x2="95" y2="30" stroke="#38bdf8" strokeWidth="1.8" markerEnd="url(#arrow)" />
+                  <line x1="86" y1="35" x2="94" y2="30" stroke="#38bdf8" strokeWidth="1.8" markerEnd="url(#arrow)" />
                   <circle cx="86" cy="35" r="2.2" fill="#38bdf8" />
                 </g>
               )}
 
               {activeSketch.diagram?.type === 'solo-dribble' && (
                 <g>
-                  {/* Maradona style zigzag dribble from center */}
-                  <path d="M 50 30 Q 60 45 68 32 T 78 40 T 88 28 L 95 30" fill="none" stroke="#fbbf24" strokeWidth="1.6" />
+                  <path d="M 50 30 Q 60 45 68 32 T 78 40 T 88 28 L 94 30" fill="none" stroke="#fbbf24" strokeWidth="1.6" markerEnd="url(#arrow)" />
                   <circle cx="50" cy="30" r="2" fill="#fbbf24" />
                   <circle cx="95" cy="30" r="2.2" fill="#10b981" />
                 </g>
@@ -256,46 +257,50 @@ export default function SketchPage() {
 
               {activeSketch.diagram?.type === 'bicycle-kick' && (
                 <g>
-                  {/* Cross from wing */}
                   <path d="M 82 10 Q 84 25 88 32" fill="none" stroke="#fbbf24" strokeWidth="1.4" strokeDasharray="2,1" />
-                  {/* High leap & strike */}
-                  <line x1="88" y1="32" x2="95" y2="28" stroke="#f43f5e" strokeWidth="2" />
+                  <line x1="88" y1="32" x2="94" y2="28" stroke="#f43f5e" strokeWidth="2" markerEnd="url(#arrow)" />
                   <circle cx="88" cy="32" r="2.5" fill="#f43f5e" />
                 </g>
               )}
 
               {activeSketch.diagram?.type === 'header-corner' && (
                 <g>
-                  {/* Ramos 93 corner */}
                   <path d="M 95 55 Q 92 38 87 32" fill="none" stroke="#fbbf24" strokeWidth="1.4" strokeDasharray="2,1" />
-                  <line x1="87" y1="32" x2="95" y2="30" stroke="#38bdf8" strokeWidth="2" />
+                  <line x1="87" y1="32" x2="94" y2="30" stroke="#38bdf8" strokeWidth="2" markerEnd="url(#arrow)" />
                   <circle cx="87" cy="32" r="2.5" fill="#38bdf8" />
                 </g>
               )}
 
               {activeSketch.diagram?.type === 'tiki-taka-counter' && (
                 <g>
-                  {/* 4 passing triangles */}
                   <line x1="40" y1="30" x2="55" y2="20" stroke="#fbbf24" strokeWidth="1.2" />
                   <line x1="55" y1="20" x2="70" y2="35" stroke="#fbbf24" strokeWidth="1.2" />
                   <line x1="70" y1="35" x2="88" y2="24" stroke="#fbbf24" strokeWidth="1.2" />
-                  <line x1="88" y1="24" x2="95" y2="28" stroke="#10b981" strokeWidth="2" />
+                  <line x1="88" y1="24" x2="94" y2="28" stroke="#10b981" strokeWidth="2" markerEnd="url(#arrow)" />
                   <circle cx="88" cy="24" r="2" fill="#10b981" />
+                </g>
+              )}
+
+              {!knownDiagramTypes.includes(activeSketch.diagram?.type) && (
+                <g>
+                  <path d="M 55 30 Q 72 18 85 28 L 94 30" fill="none" stroke="#fbbf24" strokeWidth="1.5" markerEnd="url(#arrow)" />
+                  <circle cx="55" cy="30" r="2" fill="#fbbf24" />
+                  <circle cx="85" cy="28" r="2.2" fill="#38bdf8" />
                 </g>
               )}
             </svg>
           </div>
 
           {/* Sequence Description / Hint */}
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 text-xs">
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 text-xs gap-2">
             <div className="flex items-center gap-2 text-white/80">
-              <FaFutbol className="text-amber-400" />
+              <FaFutbol className="text-amber-400 flex-shrink-0" />
               <span>{activeSketch.description}</span>
             </div>
 
             <button
               onClick={() => setShowHint(!showHint)}
-              className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-amber-300 font-bold text-xs flex items-center gap-1 transition-all"
+              className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-amber-300 font-bold text-xs flex items-center gap-1 transition-all flex-shrink-0"
             >
               <FaLightbulb />
               <span>{showHint ? 'إخفاء التلميح' : 'تلميح'}</span>
@@ -315,7 +320,7 @@ export default function SketchPage() {
 
           {/* Options Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            {activeSketch.options.map((option, idx) => {
+            {(activeSketch.options || []).map((option, idx) => {
               let btnStyle = 'bg-white/5 border-white/10 hover:border-white/30 text-white';
 
               if (isAnswerSubmitted) {
@@ -342,7 +347,6 @@ export default function SketchPage() {
             })}
           </div>
 
-          {/* Feedback & Next */}
           {isAnswerSubmitted && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 pt-4 text-center">
               <div
@@ -354,7 +358,7 @@ export default function SketchPage() {
               >
                 {isCorrect
                   ? `✓ إجابة عبقرية! تم منح ${activeSketch.points} نقطة لـ ${teamNames[currentTurn]}`
-                  : `✗ إجابة خاطئة! الهدف التاريخي هو: ${activeSketch.options[activeSketch.correctAnswer]}`}
+                  : `✗ إجابة خاطئة! الهدف التاريخي هو: ${activeSketch.options?.[activeSketch.correctAnswer]}`}
               </div>
 
               <button
@@ -379,7 +383,6 @@ export default function SketchPage() {
             <h2 className="text-2xl sm:text-3xl font-black text-white">{activeComm.commentator}</h2>
           </div>
 
-          {/* Audio / Speech Simulator Box */}
           <div className="p-6 rounded-3xl bg-gradient-to-r from-rose-900/30 via-purple-900/20 to-black/40 border border-rose-500/30 text-center space-y-4">
             <p className="text-lg sm:text-2xl font-black text-amber-300 leading-relaxed italic">
               "{activeComm.quote}"
@@ -399,13 +402,10 @@ export default function SketchPage() {
             {activeComm.clue}
           </div>
 
-          <div className="text-center text-sm font-bold text-white pt-2">
-            {activeComm.question}
-          </div>
+          <div className="text-center text-sm font-bold text-white pt-2">{activeComm.question}</div>
 
-          {/* Options Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {activeComm.options.map((option, idx) => {
+            {(activeComm.options || []).map((option, idx) => {
               let btnStyle = 'bg-white/5 border-white/10 hover:border-white/30 text-white';
 
               if (isAnswerSubmitted) {
@@ -432,7 +432,6 @@ export default function SketchPage() {
             })}
           </div>
 
-          {/* Feedback & Next */}
           {isAnswerSubmitted && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 pt-4 text-center">
               <div
@@ -444,7 +443,7 @@ export default function SketchPage() {
               >
                 {isCorrect
                   ? `✓ إجابة صحيحة! أحسنتم 🎉 (+${activeComm.points} نقطة لـ ${teamNames[currentTurn]})`
-                  : `✗ إجابة خاطئة! الإجابة المعتمدة هي: ${activeComm.options[activeComm.correctAnswer]}`}
+                  : `✗ إجابة خاطئة! الإجابة المعتمدة هي: ${activeComm.options?.[activeComm.correctAnswer]}`}
               </div>
 
               <button

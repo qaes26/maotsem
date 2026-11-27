@@ -1,26 +1,33 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiLock, FiLogOut, FiFolder, FiHelpCircle,
   FiSettings, FiUsers, FiPlus, FiEdit2, FiTrash2, FiSave,
-  FiRefreshCw, FiSearch, FiChevronDown, FiChevronUp,
-  FiX, FiCheck, FiAlertTriangle, FiMonitor, FiImage,
-  FiMusic, FiPenTool, FiChevronLeft, FiChevronRight,
+  FiRefreshCw, FiSearch, FiChevronLeft, FiChevronRight,
   FiArrowUp, FiArrowDown, FiEye, FiEyeOff, FiGrid,
-  FiCopy, FiSliders, FiLayers, FiTag, FiHash, FiCheckCircle,
+  FiCopy, FiCheckCircle, FiX, FiCheck, FiAlertTriangle,
+  FiImage, FiMusic, FiCode, FiLayout, FiExternalLink,
 } from 'react-icons/fi';
 import { FaPalette } from 'react-icons/fa';
 import useAdminStore from '../stores/adminStore';
-import useThemeStore, { THEME_PRESETS, defaultTheme, applyThemeToCSS, normalizeTheme } from '../stores/themeStore';
+import {
+  THEME_PRESETS,
+  DESIGN_EFFECT_BLOCKS,
+  defaultTheme,
+  applyThemeToCSS,
+  normalizeTheme,
+} from '../stores/themeStore';
+import { ALL_AVAILABLE_CATEGORIES, FALLBACK_CATEGORY_IMAGE } from './GameSetupPage';
 
 /* ════════════════════════════════════════════════════
    Constants & Helpers
    ════════════════════════════════════════════════════ */
 const TABS = [
-  { id: 'theme', label: 'المظهر والألوان', icon: FaPalette, emoji: '🎨' },
+  { id: 'theme', label: 'أستوديو التصميم والبناء', icon: FaPalette, emoji: '🎨' },
   { id: 'categories', label: 'الأقسام والفئات', icon: FiFolder, emoji: '📁' },
-  { id: 'questions', label: 'الأسئلة', icon: FiHelpCircle, emoji: '❓' },
-  { id: 'settings', label: 'الإعدادات', icon: FiSettings, emoji: '⚙️' },
+  { id: 'questions', label: 'بنك الأسئلة', icon: FiHelpCircle, emoji: '❓' },
+  { id: 'settings', label: 'إعدادات اللعب', icon: FiSettings, emoji: '⚙️' },
   { id: 'monitor', label: 'المستخدمون والغرف', icon: FiUsers, emoji: '👥' },
 ];
 
@@ -31,6 +38,17 @@ const FONTS = [
   { value: 'Almarai', label: 'Almarai (عصري متوازن)' },
   { value: 'Readex Pro', label: 'Readex Pro (حديث وجريء)' },
   { value: 'Changa', label: 'Changa (حماسي ورياضي)' },
+];
+
+const GAME_MODE_CONTROLS = [
+  { id: 'six-categories', defaultTitle: 'لوحة الـ 6 فئات', icon: '🧠' },
+  { id: 'auction', defaultTitle: 'المزاد الكبير', icon: '🔨' },
+  { id: 'sketch', defaultTitle: 'أهداف سكتش وصوت المعلق', icon: '✍️' },
+  { id: 'lineup', defaultTitle: 'تحدي "تشكيلة"', icon: '⚽' },
+  { id: 'charades', defaultTitle: 'تمثيل شخصيات ولاعبين', icon: '🎭' },
+  { id: 'mafia', defaultTitle: 'لعبة مافيا الجماعية', icon: '🕵️' },
+  { id: 'ai-mode', defaultTitle: 'التحدي ضد الذكاء الاصطناعي', icon: '🤖' },
+  { id: 'multiplayer-rooms', defaultTitle: 'الغرف الجماعية (أونلاين)', icon: '🌐' },
 ];
 
 const DIFFICULTY_MAP = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
@@ -44,9 +62,9 @@ const LIFELINE_LABELS = {
 };
 
 const tabVariants = {
-  hidden: { opacity: 0, x: 30 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
-  exit: { opacity: 0, x: -30, transition: { duration: 0.2 } },
+  hidden: { opacity: 0, x: 20 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.25 } },
+  exit: { opacity: 0, x: -20, transition: { duration: 0.15 } },
 };
 
 /* ════════════════════════════════════════════════════
@@ -88,12 +106,12 @@ function ConfirmModal({ open, title, message, onConfirm, onCancel }) {
         dir="rtl"
       >
         <h3 className="text-lg font-bold text-accent mb-2">{title}</h3>
-        <p className="text-gray-300 mb-6">{message}</p>
+        <p className="text-gray-300 mb-6 text-sm">{message}</p>
         <div className="flex gap-3 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 rounded-lg bg-surface text-gray-300 hover:bg-surface-light transition">
+          <button onClick={onCancel} className="px-4 py-2 rounded-lg bg-surface text-gray-300 hover:bg-surface-light transition text-sm">
             إلغاء
           </button>
-          <button onClick={onConfirm} className="px-4 py-2 rounded-lg bg-danger text-white hover:bg-red-600 transition">
+          <button onClick={onConfirm} className="px-4 py-2 rounded-lg bg-danger text-white hover:bg-red-600 transition text-sm font-bold">
             تأكيد
           </button>
         </div>
@@ -105,14 +123,14 @@ function ConfirmModal({ open, title, message, onConfirm, onCancel }) {
 function InputField({ label, value, onChange, type = 'text', placeholder, dir = 'rtl', ...props }) {
   return (
     <div className="flex flex-col gap-1">
-      {label && <label className="text-sm text-gray-400 font-arabic">{label}</label>}
+      {label && <label className="text-xs font-bold text-gray-300 font-arabic">{label}</label>}
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         dir={dir}
-        className="bg-surface border border-surface-light rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition font-arabic"
+        className="bg-surface border border-surface-light rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition font-arabic text-sm"
         {...props}
       />
     </div>
@@ -122,11 +140,11 @@ function InputField({ label, value, onChange, type = 'text', placeholder, dir = 
 function SelectField({ label, value, onChange, options, placeholder }) {
   return (
     <div className="flex flex-col gap-1">
-      {label && <label className="text-sm text-gray-400 font-arabic">{label}</label>}
+      {label && <label className="text-xs font-bold text-gray-300 font-arabic">{label}</label>}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-surface border border-surface-light rounded-lg px-3 py-2 text-white focus:border-accent focus:outline-none transition font-arabic appearance-none cursor-pointer"
+        className="bg-surface border border-surface-light rounded-lg px-3 py-2 text-white focus:border-accent focus:outline-none transition font-arabic cursor-pointer text-sm"
         dir="rtl"
       >
         {placeholder && <option value="">{placeholder}</option>}
@@ -146,13 +164,13 @@ function ToggleSwitch({ checked, onChange, label }) {
         <div className={`w-11 h-6 rounded-full transition-colors ${checked ? 'bg-accent' : 'bg-surface-light'}`} />
         <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${checked ? 'right-0.5' : 'right-[22px]'}`} />
       </div>
-      {label && <span className="text-gray-300">{label}</span>}
+      {label && <span className="text-gray-300 text-sm">{label}</span>}
     </label>
   );
 }
 
 /* ════════════════════════════════════════════════════
-   LOGIN PAGE
+   LOGIN PAGE (Private Secret Entry)
    ════════════════════════════════════════════════════ */
 function AdminLogin() {
   const [password, setPassword] = useState('');
@@ -165,18 +183,21 @@ function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary font-arabic" dir="rtl">
+    <div className="min-h-screen flex items-center justify-center bg-primary font-arabic px-4" dir="rtl">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-secondary border border-surface-light rounded-2xl p-8 w-full max-w-md shadow-2xl"
+        className="bg-secondary border border-surface-light rounded-3xl p-8 w-full max-w-md shadow-2xl"
       >
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-surface rounded-full mx-auto flex items-center justify-center mb-4">
+          <div className="w-20 h-20 bg-surface rounded-2xl mx-auto flex items-center justify-center mb-4 border border-accent/30 shadow-lg">
             <FiLock className="text-accent text-3xl" />
           </div>
-          <h1 className="text-2xl font-bold text-white">لوحة التحكم</h1>
-          <p className="text-gray-400 mt-1">أدخل كلمة المرور للدخول</p>
+          <span className="inline-block text-[11px] font-bold px-3 py-1 rounded-full bg-accent/15 text-accent border border-accent/30 mb-2">
+            🔒 منطقة خاصة بالإدارة فقط
+          </span>
+          <h1 className="text-2xl font-black text-white">أستوديو التحكم والبناء</h1>
+          <p className="text-gray-400 mt-1 text-xs">أدخل كلمة المرور للوصول إلى أدوات التصميم والمحتوى</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -184,22 +205,22 @@ function AdminLogin() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="كلمة المرور"
+            placeholder="••••••••"
             className="w-full bg-surface border border-surface-light rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition text-center text-lg"
             dir="ltr"
             autoFocus
           />
           {error && (
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-danger text-sm text-center">
-              {error}
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-danger text-xs font-bold text-center">
+              ⚠️ {error}
             </motion.p>
           )}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-accent hover:bg-yellow-500 text-primary font-bold rounded-xl py-3 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-accent hover:brightness-110 text-primary font-black rounded-xl py-3.5 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl"
           >
-            {isLoading ? <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /> : 'دخول'}
+            {isLoading ? <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /> : 'دخول إلى أستوديو الإدارة'}
           </button>
         </form>
       </motion.div>
@@ -208,11 +229,12 @@ function AdminLogin() {
 }
 
 /* ════════════════════════════════════════════════════
-   TAB 1: THEME CUSTOMIZER (التحكم الكامل بألوان ومظهر الواجهة)
+   TAB 1: NO-CODE VISUAL BUILDER & DESIGN STUDIO
    ════════════════════════════════════════════════════ */
 function ThemeTab() {
   const { theme, updateTheme, isLoading } = useAdminStore();
   const [local, setLocal] = useState(() => normalizeTheme(theme));
+  const [subTab, setSubTab] = useState('colors'); // 'colors' | 'builder' | 'blocks'
   const [activePreset, setActivePreset] = useState('royal');
   const [savedToast, setSavedToast] = useState(false);
   const [copiedToast, setCopiedToast] = useState(false);
@@ -221,7 +243,7 @@ function ThemeTab() {
     if (theme) setLocal(normalizeTheme(theme));
   }, [theme]);
 
-  const setColor = (key, val) => {
+  const updateField = (key, val) => {
     const updated = { ...local, [key]: val };
     setLocal(updated);
     applyThemeToCSS(updated);
@@ -232,6 +254,27 @@ function ThemeTab() {
     const updated = { ...local, ...preset.colors };
     setLocal(updated);
     applyThemeToCSS(updated);
+  };
+
+  const toggleEffectBlock = (blockId) => {
+    const current = local.enabledEffects || [];
+    const next = current.includes(blockId)
+      ? current.filter((x) => x !== blockId)
+      : [...current, blockId];
+    updateField('enabledEffects', next);
+  };
+
+  const toggleModeVisibility = (modeId) => {
+    const current = local.hiddenModes || [];
+    const next = current.includes(modeId)
+      ? current.filter((x) => x !== modeId)
+      : [...current, modeId];
+    updateField('hiddenModes', next);
+  };
+
+  const updateModeTitle = (modeId, title) => {
+    const next = { ...(local.customModeTitles || {}), [modeId]: title };
+    updateField('customModeTitles', next);
   };
 
   const handleSave = async () => {
@@ -256,454 +299,510 @@ function ThemeTab() {
   const colorSections = [
     {
       title: '🌌 ألوان الخلفيات والبيئة الرئيسية',
-      desc: 'الطبقات الأساسية للواجهة والخلفيات المتدرجة',
       fields: [
-        { key: 'primary', label: 'الخلفية الأساسية للموقع', desc: 'خلفية التطبيق العامة' },
-        { key: 'primaryLight', label: 'تدرج الخلفية الفاتح', desc: 'يستخدم في إضاءات الخلفية' },
-        { key: 'secondary', label: 'خلفية البطاقات والحاويات', desc: 'بطاقات الأقسام والغرف' },
-        { key: 'secondaryLight', label: 'البطاقات الفاتحة', desc: 'البطاقات المرتفعة' },
+        { key: 'primary', label: 'الخلفية الأساسية للموقع' },
+        { key: 'primaryLight', label: 'تدرج الخلفية الفاتح' },
+        { key: 'secondary', label: 'خلفية البطاقات والحاويات' },
+        { key: 'secondaryLight', label: 'البطاقات الفاتحة' },
       ],
     },
     {
       title: '🪟 أسطح القوائم والأزرار',
-      desc: 'عناصر التفاعل والقوائم والمودالات',
       fields: [
-        { key: 'surface', label: 'أسطح القوائم والنوافذ', desc: 'الحقول والقوائم المنسدلة' },
-        { key: 'surfaceLight', label: 'حدود العناصر والأزرار الثانوية', desc: 'إطارات العناصر والحدود' },
-        { key: 'surfaceDark', label: 'القوائم العميقة والتذييل', desc: 'الأسطح الغائرة والظلال' },
+        { key: 'surface', label: 'أسطح القوائم والنوافذ' },
+        { key: 'surfaceLight', label: 'حدود العناصر والأزرار' },
+        { key: 'surfaceDark', label: 'القوائم العميقة والتذييل' },
       ],
     },
     {
-      title: '👑 التمييز والنصوص (الذهب والخط)',
-      desc: 'الألوان الجاذبة للانتباه وهوية اللعبة',
+      title: '👑 التمييز والنصوص (الهوية)',
       fields: [
-        { key: 'accent', label: 'اللون الذهبي / المميز الأساسي', desc: 'أزرار اللعب، العملات، والنقاط' },
-        { key: 'textColor', label: 'لون النصوص الأساسية', desc: 'عناوين الأسئلة والخيارات' },
-        { key: 'textMuted', label: 'لون النصوص الفرعية', desc: 'الوصف الثانوي والتلميحات' },
+        { key: 'accent', label: 'اللون المميز الرئيسي (الذهبي)' },
+        { key: 'textColor', label: 'لون النصوص الأساسية' },
+        { key: 'textMuted', label: 'لون النصوص الفرعية' },
       ],
     },
     {
       title: '🚥 حالات اللعبة والنتائج',
-      desc: 'ألوان التفاعل مع صحة الإجابة والوقت',
       fields: [
-        { key: 'success', label: 'لون الإجابة الصحيحة والفوز', desc: 'الإجابة الموفقة واحتفال الفوز' },
-        { key: 'danger', label: 'لون الإجابة الخاطئة والخطر', desc: 'الخطأ وتنبيه القنبلة' },
-        { key: 'warning', label: 'لون التنبيه والوقت الحرج', desc: 'آخر 5 ثواني والتنبيهات' },
+        { key: 'success', label: 'لون الإجابة الصحيحة والفوز' },
+        { key: 'danger', label: 'لون الإجابة الخاطئة والخطر' },
+        { key: 'warning', label: 'لون التنبيه والوقت الحرج' },
       ],
     },
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Header & Save Bar */}
+    <div className="space-y-6">
+      {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-secondary/80 p-5 rounded-2xl border border-surface-light backdrop-blur-md">
         <div>
-          <h2 className="text-2xl font-black text-white flex items-center gap-3">
-            <span className="p-2 rounded-xl bg-accent/20 text-accent text-xl">🎨</span>
-            تخصيص المظهر الشامل والتحكم بالألوان
+          <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-accent/20 text-accent text-lg">🎨</span>
+            أستوديو بناء وتصميم الموقع (No-Code Builder)
           </h2>
-          <p className="text-sm text-gray-400 mt-1">
-            تحكم بكل لون وطبقة وخط بالواجهة فوراً مع حفظ وتعميم حي على قاعدة البيانات لجميع اللاعبين
+          <p className="text-xs sm:text-sm text-gray-400 mt-1">
+            تحكم كامل بالتصميم، الألوان، النصوص، شكل البطاقات، إخفاء/إظهار الألعاب، وحتى إضافة تأثيرات برمجية بضغطة زر
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleCopyJSON}
-            className="px-4 py-2.5 rounded-xl bg-surface border border-surface-light text-gray-300 hover:text-white hover:bg-surface-light transition text-sm flex items-center gap-2"
-            title="نسخ كود الألوان"
+            className="px-3.5 py-2.5 rounded-xl bg-surface border border-surface-light text-gray-300 hover:text-white transition text-xs font-bold flex items-center gap-1.5"
           >
-            <FiCopy /> {copiedToast ? 'تم النسخ!' : 'نسخ كود JSON'}
+            <FiCopy /> {copiedToast ? 'تم النسخ!' : 'تصدير JSON'}
           </button>
           <button
             onClick={handleReset}
-            className="px-4 py-2.5 rounded-xl bg-surface border border-surface-light text-gray-400 hover:text-danger hover:bg-surface-light transition text-sm flex items-center gap-2"
+            className="px-3.5 py-2.5 rounded-xl bg-surface border border-surface-light text-gray-400 hover:text-danger transition text-xs font-bold flex items-center gap-1.5"
           >
-            <FiRefreshCw /> إعادة تعيين
+            <FiRefreshCw /> الافتراضي
           </button>
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-accent to-yellow-500 text-primary font-black shadow-lg shadow-accent/25 hover:brightness-110 active:scale-95 transition flex items-center gap-2 text-sm disabled:opacity-50"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-accent to-yellow-500 text-primary font-black shadow-lg hover:brightness-110 active:scale-95 transition flex items-center gap-2 text-xs sm:text-sm disabled:opacity-50"
           >
-            {isLoading ? <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /> : <FiSave />}
-            حفظ وتعميم المظهر
+            <FiSave /> حفظ ونشر التعديلات
           </button>
         </div>
       </div>
 
       {savedToast && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-success/20 border border-success text-success px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-bold"
-        >
+        <div className="bg-success/20 border border-success text-success px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-bold">
           <FiCheckCircle className="text-lg" />
-          تم حفظ وتطبيق المظهر بنجاح ومزامنته مع قاعدة بيانات Supabase!
-        </motion.div>
+          تم حفظ التصميم وتطبيقه فوراً على جميع واجهات الموقع!
+        </div>
       )}
 
-      {/* 1. Curated Theme Presets Gallery */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>✨</span> ثيمات أسطورية جاهزة بنقرة واحدة
-          </h3>
-          <span className="text-xs text-gray-400">انقر على أي ثيم لتطبيقه ومعاينته حياً</span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-          {THEME_PRESETS.map((preset) => {
-            const isSelected = activePreset === preset.id;
-            return (
-              <button
-                key={preset.id}
-                onClick={() => handleApplyPreset(preset)}
-                className={`p-3.5 rounded-2xl border text-right transition-all flex flex-col justify-between h-full relative overflow-hidden group ${
-                  isSelected
-                    ? 'border-accent bg-accent/10 shadow-lg shadow-accent/20 scale-[1.02]'
-                    : 'border-surface-light bg-surface/60 hover:bg-surface hover:border-gray-500'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">{preset.emoji}</span>
-                    {isSelected && (
-                      <span className="w-5 h-5 rounded-full bg-accent text-primary flex items-center justify-center text-xs font-bold">
-                        ✓
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="text-sm font-bold text-white group-hover:text-accent transition truncate">
-                    {preset.name}
-                  </h4>
-                  <p className="text-[11px] text-gray-400 line-clamp-2 mt-1 leading-snug">
-                    {preset.description}
-                  </p>
-                </div>
-
-                {/* Color swatches preview */}
-                <div className="flex items-center gap-1.5 mt-3 pt-2 border-t border-surface-light">
-                  <span className="w-4 h-4 rounded-full border border-white/20" style={{ background: preset.colors.primary }} />
-                  <span className="w-4 h-4 rounded-full border border-white/20" style={{ background: preset.colors.secondary }} />
-                  <span className="w-4 h-4 rounded-full border border-white/20" style={{ background: preset.colors.accent }} />
-                  <span className="w-4 h-4 rounded-full border border-white/20" style={{ background: preset.colors.surface }} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
+      {/* Sub-Tabs inside Studio */}
+      <div className="flex bg-surface/60 p-1.5 rounded-2xl border border-surface-light gap-1.5 overflow-x-auto">
+        {[
+          { id: 'colors', label: '🎨 الألوان والثيمات الجاهزة', icon: FaPalette },
+          { id: 'builder', label: '🏗️ بناء الواجهة والنصوص والأقسام', icon: FiLayout },
+          { id: 'blocks', label: '⚡ بلوكات التصميم والكود المبسط', icon: FiCode },
+        ].map((st) => (
+          <button
+            key={st.id}
+            onClick={() => setSubTab(st.id)}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center justify-center gap-2 ${
+              subTab === st.id
+                ? 'bg-accent text-primary shadow-md'
+                : 'text-gray-300 hover:bg-surface-light/40'
+            }`}
+          >
+            <span>{st.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* 2. Interactive Live Preview Arena */}
-      <div className="bg-gradient-to-br from-surface to-surface-dark p-6 rounded-2xl border border-surface-light shadow-2xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-accent flex items-center gap-2">
-            <span>👁️</span> منطقة المعاينة الحية الفورية (Live Preview Arena)
-          </h3>
-          <span className="text-xs bg-surface-dark px-3 py-1 rounded-full text-gray-400 border border-surface-light">
-            تتغير العناصر أدناه مباشرة مع أي تعديل بالألوان
-          </span>
+      {/* Live Preview Banner (Always visible so changes are seen immediately) */}
+      <div
+        className="p-5 rounded-2xl border transition-all space-y-4 shadow-2xl"
+        style={{
+          background: `linear-gradient(135deg, ${local.primary} 0%, ${local.primaryLight} 50%, ${local.secondary} 100%)`,
+          borderColor: local.surfaceLight,
+          fontFamily: local.fontFamily,
+          borderRadius: `${local.borderRadius}px`,
+        }}
+      >
+        <div className="flex items-center justify-between flex-wrap gap-2 text-xs text-gray-300 pb-2 border-b border-white/10">
+          <span className="font-bold text-accent">👁️ معاينة حية مباشرة لشكل الموقع:</span>
+          <span className="opacity-70">الخط: {local.fontFamily} | الاستدارة: {local.borderRadius}px | البطاقات: {local.cardStyle}</span>
         </div>
 
-        {/* Live Playground Canvas */}
         <div
-          className="p-6 rounded-2xl border transition-all space-y-6"
+          className="flex items-center justify-between p-3.5 border backdrop-blur-md"
           style={{
-            background: `linear-gradient(135deg, ${local.primary} 0%, ${local.primaryLight} 50%, ${local.secondary} 100%)`,
+            background: `${local.secondary}dd`,
             borderColor: local.surfaceLight,
-            fontFamily: local.fontFamily,
+            borderRadius: `${local.borderRadius}px`,
           }}
         >
-          {/* Mock Header */}
-          <div
-            className="flex items-center justify-between p-3.5 rounded-xl border backdrop-blur-md"
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 flex items-center justify-center font-black overflow-hidden"
+              style={{ background: local.accent, color: local.primary, borderRadius: `${Math.max(6, local.borderRadius - 4)}px` }}
+            >
+              {local.logoUrl ? (
+                <img src={local.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                local.logoEmoji || '🎮'
+              )}
+            </div>
+            <div>
+              <div className="text-base font-black" style={{ color: local.accent }}>{local.siteName}</div>
+              <div className="text-[10px]" style={{ color: local.textMuted }}>{local.siteSubtitle}</div>
+            </div>
+          </div>
+          <button
+            className="px-4 py-1.5 text-xs font-black"
             style={{
-              background: `${local.secondary}dd`,
+              background: local.buttonStyle === 'outline' ? 'transparent' : local.accent,
+              color: local.buttonStyle === 'outline' ? local.accent : local.primary,
+              border: local.buttonStyle === 'outline' ? `2px solid ${local.accent}` : 'none',
+              borderRadius: `${local.borderRadius}px`,
+            }}
+          >
+            دخول اللعبة
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div
+            className="p-4 border"
+            style={{
+              background: local.cardStyle === 'solid' ? local.secondary : `${local.surface}aa`,
+              borderColor: local.cardStyle === 'neon' ? local.accent : local.surfaceLight,
+              borderWidth: `${local.cardBorderWidth}px`,
+              borderRadius: `${local.borderRadius}px`,
+            }}
+          >
+            <div className="text-xs font-bold mb-1" style={{ color: local.accent }}>{local.heroBadge}</div>
+            <div className="text-base font-black mb-1" style={{ color: local.textColor }}>{local.heroTitle}</div>
+            <div className="text-xs" style={{ color: local.textMuted }}>{local.heroDescription}</div>
+          </div>
+
+          <div
+            className="p-4 border flex flex-col justify-between"
+            style={{
+              background: local.secondary,
               borderColor: local.surfaceLight,
               borderRadius: `${local.borderRadius}px`,
             }}
           >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl font-black" style={{ color: local.accent }}>
-                هخلص عليك
-              </span>
-              <span className="text-xs px-2.5 py-1 rounded-full font-bold" style={{ background: `${local.accent}20`, color: local.accent }}>
-                معركة العقول ⚡
-              </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold" style={{ color: local.textColor }}>مثال بطاقة فئة أو سؤال</span>
+              <span className="text-xs px-2 py-0.5 rounded font-bold" style={{ background: local.success, color: '#fff' }}>+400 نقطة</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold border"
-                style={{ background: local.surface, borderColor: local.surfaceLight, color: local.textColor }}
-              >
-                <span>🪙</span> 2,450 نقطة
-              </div>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ background: local.accent, color: local.primary }}>
-                🦁
-              </div>
+            <div className="flex gap-2 mt-3">
+              <span className="px-3 py-1 rounded text-xs font-bold" style={{ background: `${local.success}25`, color: local.success }}>صحيح ✓</span>
+              <span className="px-3 py-1 rounded text-xs font-bold" style={{ background: `${local.danger}25`, color: local.danger }}>خطأ ✕</span>
+              <span className="px-3 py-1 rounded text-xs font-bold" style={{ background: `${local.warning}25`, color: local.warning }}>تنبيه ⏱️</span>
             </div>
-          </div>
-
-          {/* Mock Game Category & Question Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Category Card Mock */}
-            <div
-              className="p-5 rounded-2xl border transition shadow-lg"
-              style={{
-                background: local.surface,
-                borderColor: local.surfaceLight,
-                borderRadius: `${local.borderRadius}px`,
-              }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-3xl">⚽</span>
-                <span className="text-xs px-2.5 py-1 rounded-full font-bold" style={{ background: `${local.accent}25`, color: local.accent }}>
-                  12 سؤال متاح
-                </span>
-              </div>
-              <h4 className="text-lg font-bold mb-1" style={{ color: local.textColor }}>الدوري الإسباني (الكلاسيكو)</h4>
-              <p className="text-xs leading-relaxed" style={{ color: local.textMuted }}>
-                تحدي أساطير ريال مدريد وبرشلونة والأهداف التاريخية
-              </p>
-            </div>
-
-            {/* Question Card Mock */}
-            <div
-              className="p-5 rounded-2xl border transition shadow-lg"
-              style={{
-                background: local.secondary,
-                borderColor: local.surfaceLight,
-                borderRadius: `${local.borderRadius}px`,
-              }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: local.surfaceLight, color: local.accent }}>
-                  سؤال 400 نقطة
-                </span>
-                <span className="text-xs font-mono font-bold" style={{ color: local.warning }}>
-                  ⏱️ 14 ثانية
-                </span>
-              </div>
-              <p className="text-sm font-bold mb-3" style={{ color: local.textColor }}>
-                من هو الهداف التاريخي لمباريات الكلاسيكو بين الريال والبارسا؟
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <div
-                  className="p-2.5 text-xs font-bold rounded-lg text-center transition border"
-                  style={{ background: local.surface, borderColor: local.surfaceLight, color: local.textColor, borderRadius: `${Math.max(6, local.borderRadius - 4)}px` }}
-                >
-                  كريستيانو رونالدو
-                </div>
-                <div
-                  className="p-2.5 text-xs font-bold rounded-lg text-center transition border"
-                  style={{ background: `${local.success}25`, borderColor: local.success, color: local.success, borderRadius: `${Math.max(6, local.borderRadius - 4)}px` }}
-                >
-                  ✓ ليونيل ميسي (صحيح)
-                </div>
-                <div
-                  className="p-2.5 text-xs font-bold rounded-lg text-center transition border"
-                  style={{ background: local.surface, borderColor: local.surfaceLight, color: local.textColor, borderRadius: `${Math.max(6, local.borderRadius - 4)}px` }}
-                >
-                  ألفريدو دي ستيفانو
-                </div>
-                <div
-                  className="p-2.5 text-xs font-bold rounded-lg text-center transition border"
-                  style={{ background: `${local.danger}25`, borderColor: local.danger, color: local.danger, borderRadius: `${Math.max(6, local.borderRadius - 4)}px` }}
-                >
-                  ✗ كريم بنزيما (خطأ)
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons Mock */}
-          <div className="flex items-center gap-3 flex-wrap pt-2">
-            <button
-              className="px-5 py-2.5 font-bold text-sm shadow-md transition"
-              style={{
-                background: `linear-gradient(135deg, ${local.accent} 0%, #d4a010 100%)`,
-                color: local.primary,
-                borderRadius: `${local.borderRadius}px`,
-              }}
-            >
-              زر ذهبي رئيسي
-            </button>
-            <button
-              className="px-5 py-2.5 font-bold text-sm border transition"
-              style={{
-                background: local.surface,
-                borderColor: local.surfaceLight,
-                color: local.accent,
-                borderRadius: `${local.borderRadius}px`,
-              }}
-            >
-              زر إطار ثانوي
-            </button>
-            <span
-              className="px-3.5 py-1.5 text-xs font-bold"
-              style={{ background: local.success, color: '#ffffff', borderRadius: `${local.borderRadius}px` }}
-            >
-              فوز +500
-            </span>
-            <span
-              className="px-3.5 py-1.5 text-xs font-bold"
-              style={{ background: local.danger, color: '#ffffff', borderRadius: `${local.borderRadius}px` }}
-            >
-              خسارة -200
-            </span>
-            <span
-              className="px-3.5 py-1.5 text-xs font-bold"
-              style={{ background: local.warning, color: local.primary, borderRadius: `${local.borderRadius}px` }}
-            >
-              وقت حرج!
-            </span>
           </div>
         </div>
       </div>
 
-      {/* 3. Detailed Color Layer Editors */}
-      <div className="space-y-6">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>🎨</span> تحكم دقيق بكل طبقات الألوان (Color Layers)
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {colorSections.map((sec) => (
-            <div key={sec.title} className="bg-surface/80 rounded-2xl p-5 border border-surface-light space-y-4">
-              <div>
-                <h4 className="font-bold text-white text-base">{sec.title}</h4>
-                <p className="text-xs text-gray-400 mt-0.5">{sec.desc}</p>
-              </div>
-
-              <div className="space-y-3">
-                {sec.fields.map(({ key, label, desc }) => (
-                  <div key={key} className="flex items-center justify-between gap-3 p-2.5 bg-surface-dark/70 rounded-xl border border-surface-light/60">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-gray-200 truncate">{label}</p>
-                      <p className="text-[11px] text-gray-500 truncate">{desc}</p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <input
-                        type="color"
-                        value={local[key] || '#000000'}
-                        onChange={(e) => setColor(key, e.target.value)}
-                        className="w-9 h-9 rounded-lg border-2 border-surface-light cursor-pointer bg-transparent"
-                      />
-                      <input
-                        type="text"
-                        value={local[key] || ''}
-                        onChange={(e) => setColor(key, e.target.value)}
-                        className="w-24 bg-surface border border-surface-light rounded-lg px-2 py-1 text-white text-xs font-mono text-center uppercase"
-                        dir="ltr"
-                        maxLength={7}
-                      />
-                    </div>
+      {/* SUB-TAB 1: COLORS & PRESETS */}
+      {subTab === 'colors' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            {THEME_PRESETS.map((preset) => {
+              const isSelected = activePreset === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => handleApplyPreset(preset)}
+                  className={`p-3 rounded-2xl border text-right transition-all ${
+                    isSelected
+                      ? 'border-accent bg-accent/15 shadow-lg scale-[1.02]'
+                      : 'border-surface-light bg-surface/60 hover:bg-surface'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xl">{preset.emoji}</span>
+                    {isSelected && <span className="text-xs font-bold text-accent">✓</span>}
                   </div>
-                ))}
+                  <div className="text-xs font-bold text-white truncate">{preset.name}</div>
+                  <div className="flex gap-1 mt-2">
+                    <span className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ background: preset.colors.primary }} />
+                    <span className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ background: preset.colors.accent }} />
+                    <span className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ background: preset.colors.surface }} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {colorSections.map((sec) => (
+              <div key={sec.title} className="bg-surface/80 rounded-2xl p-5 border border-surface-light space-y-3">
+                <h4 className="font-bold text-white text-sm">{sec.title}</h4>
+                <div className="space-y-2.5">
+                  {sec.fields.map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between gap-3 p-2.5 bg-surface-dark/70 rounded-xl border border-surface-light/60">
+                      <span className="text-xs font-bold text-gray-200">{label}</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={local[key] || '#000000'}
+                          onChange={(e) => updateField(key, e.target.value)}
+                          className="w-8 h-8 rounded-lg border border-surface-light cursor-pointer bg-transparent"
+                        />
+                        <input
+                          type="text"
+                          value={local[key] || ''}
+                          onChange={(e) => updateField(key, e.target.value)}
+                          className="w-20 bg-surface border border-surface-light rounded-lg px-2 py-1 text-white text-xs font-mono text-center uppercase"
+                          dir="ltr"
+                          maxLength={7}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 4. Typography, Radius & Branding */}
-      <div className="bg-surface/80 rounded-2xl p-6 border border-surface-light space-y-5">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>✍️</span> الخطوط وهندسة الواجهة (Typography & Geometry)
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {/* Font Selector */}
-          <div>
-            <label className="text-sm font-bold text-gray-300 block mb-2">نوع الخط العربي الأساسي</label>
-            <select
-              value={local.fontFamily || 'Cairo'}
-              onChange={(e) => setColor('fontFamily', e.target.value)}
-              className="w-full bg-surface-dark border border-surface-light rounded-xl px-3.5 py-2.5 text-white focus:border-accent focus:outline-none transition cursor-pointer text-sm"
-              dir="rtl"
-            >
-              {FONTS.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1.5" style={{ fontFamily: local.fontFamily }}>
-              معاينة: «هخلص عليك - تحدي معلومات كرة القدم والمسلسلات والثقافة العامة»
-            </p>
-          </div>
-
-          {/* Border Radius Slider */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-bold text-gray-300">درجة انحناء الحواف (Border Radius)</label>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-surface-dark text-accent border border-surface-light">
-                {local.borderRadius || 14}px
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="28"
-              step="1"
-              value={local.borderRadius || 14}
-              onChange={(e) => setColor('borderRadius', parseInt(e.target.value))}
-              className="w-full accent-accent cursor-pointer mt-2"
-            />
-            <div className="flex justify-between text-[11px] text-gray-500 mt-1">
-              <span>0px (حاد عصري)</span>
-              <span>14px (متوازن)</span>
-              <span>28px (مستدير ناعم)</span>
-            </div>
-          </div>
-
-          {/* Logo URL */}
-          <div>
-            <label className="text-sm font-bold text-gray-300 block mb-2">رابط شعار اللعبة مخصص (Logo)</label>
-            <input
-              type="text"
-              value={local.logoUrl || ''}
-              onChange={(e) => setColor('logoUrl', e.target.value)}
-              placeholder="https://example.com/logo.png"
-              className="w-full bg-surface-dark border border-surface-light rounded-xl px-3.5 py-2 text-white placeholder-gray-600 focus:border-accent focus:outline-none text-xs font-mono"
-              dir="ltr"
-            />
-            {local.logoUrl && (
-              <div className="mt-2 flex items-center gap-2">
-                <img
-                  src={local.logoUrl}
-                  alt="Logo Preview"
-                  className="w-10 h-10 object-contain rounded-lg bg-surface-dark p-1 border border-surface-light"
-                  onError={(e) => { e.target.style.display = 'none'; }}
+      {/* SUB-TAB 2: VISUAL SITE & LAYOUT BUILDER */}
+      {subTab === 'builder' && (
+        <div className="space-y-6">
+          {/* Site Identity & Texts */}
+          <div className="bg-surface/80 rounded-2xl p-6 border border-surface-light space-y-4">
+            <h3 className="text-base font-black text-white">📝 هوية الموقع والنصوص الرئيسية</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <InputField label="اسم اللعبة / المنصة" value={local.siteName} onChange={(v) => updateField('siteName', v)} />
+              <InputField label="الشعار الفرعي أسفل الاسم" value={local.siteSubtitle} onChange={(v) => updateField('siteSubtitle', v)} />
+              <InputField label="شارة الترحيب العلوية (Badge)" value={local.heroBadge} onChange={(v) => updateField('heroBadge', v)} />
+              <InputField label="عنوان الصفحة الرئيسية الكبير" value={local.heroTitle} onChange={(v) => updateField('heroTitle', v)} />
+              <div className="sm:col-span-2">
+                <label className="text-xs font-bold text-gray-300 block mb-1">وصف المنصة في الواجهة الرئيسية</label>
+                <textarea
+                  rows={2}
+                  value={local.heroDescription}
+                  onChange={(e) => updateField('heroDescription', e.target.value)}
+                  className="w-full bg-surface-dark border border-surface-light rounded-xl px-3 py-2 text-white text-sm focus:border-accent focus:outline-none"
                 />
-                <span className="text-xs text-gray-400">معاينة الشعار المخصص</span>
               </div>
-            )}
+              <InputField label="نص التذييل (Footer)" value={local.footerText} onChange={(v) => updateField('footerText', v)} />
+              <div className="grid grid-cols-2 gap-3">
+                <InputField label="أيقونة الشعار (Emoji)" value={local.logoEmoji || ''} onChange={(v) => updateField('logoEmoji', v)} placeholder="🎮" />
+                <InputField label="أو رابط صورة الشعار" value={local.logoUrl || ''} onChange={(v) => updateField('logoUrl', v)} placeholder="https://..." dir="ltr" />
+              </div>
+            </div>
+          </div>
+
+          {/* Geometry, Card Style, Background & Font */}
+          <div className="bg-surface/80 rounded-2xl p-6 border border-surface-light space-y-5">
+            <h3 className="text-base font-black text-white">📐 هندسة الواجهة، البطاقات، الخلفية، والخطوط</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <SelectField
+                label="نوع الخط العربي"
+                value={local.fontFamily || 'Cairo'}
+                onChange={(v) => updateField('fontFamily', v)}
+                options={FONTS}
+              />
+              <SelectField
+                label="نمط البطاقات (Card Style)"
+                value={local.cardStyle || 'glass'}
+                onChange={(v) => updateField('cardStyle', v)}
+                options={[
+                  { value: 'glass', label: 'زجاجي شفاف (Glassmorphism)' },
+                  { value: 'solid', label: 'صلب واضح (Solid)' },
+                  { value: 'neon', label: 'إطار نيون متوهج (Neon)' },
+                  { value: 'minimal', label: 'بسيط مسطح (Minimal)' },
+                ]}
+              />
+              <SelectField
+                label="خلفية الموقع (Background)"
+                value={local.bgPattern || 'gradient'}
+                onChange={(v) => updateField('bgPattern', v)}
+                options={[
+                  { value: 'gradient', label: 'تدرج لوني ناعم' },
+                  { value: 'aurora', label: 'إضاءة شفق متوهجة (Aurora)' },
+                  { value: 'grid', label: 'شبكة هندسية تقنية (Grid)' },
+                  { value: 'dots', label: 'نقاط مضيئة (Dots)' },
+                ]}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center">
+              <SelectField
+                label="نمط الأزرار الرئيسية"
+                value={local.buttonStyle || 'gradient'}
+                onChange={(v) => updateField('buttonStyle', v)}
+                options={[
+                  { value: 'gradient', label: 'تدرج ذهبي كلاسيكي' },
+                  { value: 'glow', label: 'مضيء متوهج (Glow)' },
+                  { value: 'outline', label: 'إطار مفرغ (Outline)' },
+                ]}
+              />
+
+              <div>
+                <div className="flex justify-between text-xs font-bold text-gray-300 mb-1">
+                  <span>استدارة الحواف</span>
+                  <span className="text-accent font-mono">{local.borderRadius}px</span>
+                </div>
+                <input
+                  type="range" min="0" max="28"
+                  value={local.borderRadius}
+                  onChange={(e) => updateField('borderRadius', parseInt(e.target.value))}
+                  className="w-full accent-accent"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-bold text-gray-300 mb-1">
+                  <span>حجم الخط العام</span>
+                  <span className="text-accent font-mono">{local.fontSizeScale}%</span>
+                </div>
+                <input
+                  type="range" min="85" max="115" step="5"
+                  value={local.fontSizeScale}
+                  onChange={(e) => updateField('fontSizeScale', parseInt(e.target.value))}
+                  className="w-full accent-accent"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-bold text-gray-300 mb-1">
+                  <span>ضبابية الزجاج (Blur)</span>
+                  <span className="text-accent font-mono">{local.glassBlur}px</span>
+                </div>
+                <input
+                  type="range" min="0" max="30" step="2"
+                  value={local.glassBlur}
+                  onChange={(e) => updateField('glassBlur', parseInt(e.target.value))}
+                  className="w-full accent-accent"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <ToggleSwitch
+                checked={local.animationsEnabled}
+                onChange={(v) => updateField('animationsEnabled', v)}
+                label="تفعيل الحركات والانتقالات (Animations)"
+              />
+            </div>
+          </div>
+
+          {/* Game Modes Visibility & Custom Names */}
+          <div className="bg-surface/80 rounded-2xl p-6 border border-surface-light space-y-4">
+            <div>
+              <h3 className="text-base font-black text-white">🎮 التحكم بألعاب الصفحة الرئيسية (إخفاء / إظهار / تغيير الاسم)</h3>
+              <p className="text-xs text-gray-400 mt-0.5">عطّل أي لعبة لا تريدها أن تظهر للاعبين أو غيّر عنوانها مباشرة</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {GAME_MODE_CONTROLS.map((gm) => {
+                const isVisible = !(local.hiddenModes || []).includes(gm.id);
+                const customTitle = (local.customModeTitles || {})[gm.id] ?? gm.defaultTitle;
+                return (
+                  <div
+                    key={gm.id}
+                    className={`p-3 rounded-xl border flex items-center gap-3 transition ${
+                      isVisible ? 'bg-surface-dark/70 border-surface-light' : 'bg-surface-dark/30 border-danger/30 opacity-60'
+                    }`}
+                  >
+                    <span className="text-xl">{gm.icon}</span>
+                    <input
+                      type="text"
+                      value={customTitle}
+                      onChange={(e) => updateModeTitle(gm.id, e.target.value)}
+                      className="flex-1 bg-surface border border-surface-light rounded-lg px-2.5 py-1.5 text-xs font-bold text-white focus:border-accent focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleModeVisibility(gm.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
+                        isVisible
+                          ? 'bg-success/15 border-success/40 text-success'
+                          : 'bg-danger/15 border-danger/40 text-danger'
+                      }`}
+                    >
+                      {isVisible ? 'ظاهرة ✓' : 'مخفية ✕'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* SUB-TAB 3: SMART CSS BLOCKS & SIMPLE CODE BUILDER */}
+      {subTab === 'blocks' && (
+        <div className="space-y-6">
+          {/* 1-Click Visual Effect Blocks */}
+          <div className="bg-surface/80 rounded-2xl p-6 border border-surface-light space-y-4">
+            <div>
+              <h3 className="text-base font-black text-white">⚡ بلوكات التأثيرات الجاهزة (بنقرة واحدة بدون كتابة كود)</h3>
+              <p className="text-xs text-gray-400 mt-0.5">فعّل أو عطّل أي تأثير جمالي وسيتولد كود الـ CSS الخاص به تلقائياً</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {DESIGN_EFFECT_BLOCKS.map((block) => {
+                const active = (local.enabledEffects || []).includes(block.id);
+                return (
+                  <button
+                    key={block.id}
+                    type="button"
+                    onClick={() => toggleEffectBlock(block.id)}
+                    className={`p-4 rounded-2xl border text-right transition-all ${
+                      active
+                        ? 'bg-accent/15 border-accent text-white shadow-lg'
+                        : 'bg-surface-dark/60 border-surface-light text-gray-300 hover:border-gray-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-sm">{block.name}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${active ? 'bg-accent text-primary' : 'bg-white/10 text-gray-400'}`}>
+                        {active ? 'مفعّل ✓' : 'تفعيل'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-400 leading-relaxed">{block.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Simple Custom CSS Editor */}
+          <div className="bg-surface/80 rounded-2xl p-6 border border-surface-light space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <FiCode className="text-accent" />
+                  <span>محرر كود التصميم المخصص (Custom CSS)</span>
+                </h3>
+                <p className="text-xs text-gray-400">للتعديلات البرمجية الدقيقة — أي كود تكتبه هنا يُطبّق حياً على الموقع بالكامل</p>
+              </div>
+              {local.customCss && (
+                <button
+                  onClick={() => updateField('customCss', '')}
+                  className="text-xs text-danger hover:underline"
+                >
+                  مسح الكود
+                </button>
+              )}
+            </div>
+            <textarea
+              rows={7}
+              dir="ltr"
+              value={local.customCss || ''}
+              onChange={(e) => updateField('customCss', e.target.value)}
+              placeholder={`/* مثال لتعديل أي عنصر في الموقع */\n.glass-card {\n  border-width: 2px;\n}\nheader {\n  box-shadow: 0 4px 30px rgba(226, 183, 20, 0.2);\n}`}
+              className="w-full bg-[#090d1a] border border-surface-light rounded-xl p-4 text-emerald-300 font-mono text-xs focus:border-accent focus:outline-none leading-relaxed"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ════════════════════════════════════════════════════
-   TAB 2: CATEGORIES MANAGER (إضافة وحذف وتعديل الأقسام والفئات)
+   TAB 2: CATEGORIES MANAGER (إضافة وحذف وتعديل الأقسام والفئات + صورها)
    ════════════════════════════════════════════════════ */
 function CategoriesTab() {
   const { categories, loadCategories, addCategory, updateCategory, deleteCategory, isLoading } = useAdminStore();
   const [showModal, setShowModal] = useState(false);
   const [editCategory, setEditCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterActive, setFilterActive] = useState('all'); // all | active | inactive
+  const [filterActive, setFilterActive] = useState('all');
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Form State
   const initialForm = {
     name: '',
     name_ar: '',
     slug: '',
     icon: '⚽',
     color: '#e2b714',
+    image: '',
     description: '',
     sort_order: 0,
     is_active: true,
@@ -714,6 +813,36 @@ function CategoriesTab() {
     loadCategories();
   }, []);
 
+  // Merge built-in 24 categories with DB categories
+  const mergedCategories = React.useMemo(() => {
+    const bySlug = new Map();
+    ALL_AVAILABLE_CATEGORIES.forEach((c, idx) => {
+      bySlug.set(c.id, {
+        id: c.id,
+        slug: c.id,
+        name: c.name,
+        name_ar: c.name,
+        icon: c.icon,
+        image: c.image,
+        color: '#e2b714',
+        sort_order: idx,
+        is_active: true,
+        is_custom: false,
+        questionCount: 3,
+      });
+    });
+    (categories || []).forEach((c) => {
+      const key = c.slug || c.id;
+      const prev = bySlug.get(key) || {};
+      bySlug.set(key, {
+        ...prev,
+        ...c,
+        image: c.image || prev.image || FALLBACK_CATEGORY_IMAGE,
+      });
+    });
+    return Array.from(bySlug.values());
+  }, [categories]);
+
   const resetForm = () => {
     setForm(initialForm);
     setEditCategory(null);
@@ -723,7 +852,8 @@ function CategoriesTab() {
   const openAddModal = () => {
     setForm({
       ...initialForm,
-      sort_order: categories.length + 1,
+      image: FALLBACK_CATEGORY_IMAGE,
+      sort_order: mergedCategories.length + 1,
     });
     setEditCategory(null);
     setShowModal(true);
@@ -737,6 +867,7 @@ function CategoriesTab() {
       slug: cat.slug || cat.id,
       icon: cat.icon || '🎯',
       color: cat.color || '#e2b714',
+      image: cat.image || '',
       description: cat.description || '',
       sort_order: cat.sort_order ?? 0,
       is_active: cat.is_active !== false,
@@ -746,11 +877,7 @@ function CategoriesTab() {
 
   const handleAutoSlug = () => {
     const text = form.name_ar || form.name || '';
-    const clean = text
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-zA-Z0-9-_\u0600-\u06FF]/g, '');
+    const clean = text.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
     setForm((p) => ({ ...p, slug: clean || `cat-${Date.now().toString(36)}` }));
   };
 
@@ -762,9 +889,10 @@ function CategoriesTab() {
     const payload = {
       name: form.name || form.name_ar,
       name_ar: form.name_ar || form.name,
-      slug: form.slug || form.name.toLowerCase().replace(/\s+/g, '-') || `cat-${Date.now().toString(36)}`,
+      slug: form.slug || `cat-${Date.now().toString(36)}`,
       icon: form.icon || '🎯',
       color: form.color || '#e2b714',
+      image: form.image || FALLBACK_CATEGORY_IMAGE,
       description: form.description || '',
       sort_order: Number(form.sort_order) || 0,
       is_active: form.is_active !== false,
@@ -791,26 +919,11 @@ function CategoriesTab() {
   };
 
   const handleToggleActive = async (cat) => {
-    const newStatus = cat.is_active === false ? true : false;
+    const newStatus = cat.is_active === false;
     await updateCategory(cat.id || cat.slug, { is_active: newStatus });
   };
 
-  const moveCategory = async (index, direction) => {
-    const newCats = [...categories];
-    const target = index + direction;
-    if (target < 0 || target >= newCats.length) return;
-    [newCats[index], newCats[target]] = [newCats[target], newCats[index]];
-    useAdminStore.setState({ categories: newCats });
-
-    // Sync new sort order
-    try {
-      await updateCategory(newCats[index].id || newCats[index].slug, { sort_order: index });
-      await updateCategory(newCats[target].id || newCats[target].slug, { sort_order: target });
-    } catch {}
-  };
-
-  // Filtered list
-  const filtered = categories.filter((cat) => {
+  const filtered = mergedCategories.filter((cat) => {
     const matchesSearch =
       (cat.name_ar || cat.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (cat.slug || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -821,118 +934,51 @@ function CategoriesTab() {
     return true;
   });
 
-  const totalQuestions = categories.reduce((sum, c) => sum + (c.questionCount || 0), 0);
-  const activeCount = categories.filter((c) => c.is_active !== false).length;
-
-  const popularEmojis = ['⚽', '🎬', '🎮', '🧠', '📚', '💄', '🌍', '👑', '🏎️', '🎨', '🎵', '🍕', '🚀', '🕌', '⚔️', '🏆', '📱', '🧪', '🍔', '💎', '🦁', '🥊', '🏀', '🏎️'];
-  const colorPresets = ['#e2b714', '#10b981', '#f43f5e', '#00f0ff', '#8b5cf6', '#f97316', '#3b82f6', '#ec4899'];
+  const activeCount = mergedCategories.filter((c) => c.is_active !== false).length;
+  const popularEmojis = ['⚽', '🎬', '🎮', '🧠', '📚', '💄', '🌍', '👑', '🏎️', '🎨', '🎵', '🍕', '🚀', '🕌', '⚔️', '🏆'];
 
   return (
     <div className="space-y-6">
-      {/* Top Header & Metrics */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-secondary/80 p-5 rounded-2xl border border-surface-light backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-secondary/80 p-5 rounded-2xl border border-surface-light">
         <div>
           <h2 className="text-2xl font-black text-white flex items-center gap-3">
             <span className="p-2 rounded-xl bg-accent/20 text-accent text-xl">📁</span>
-            إدارة الأقسام والفئات (Categories)
+            إدارة الأقسام والفئات وصورها
           </h2>
           <p className="text-sm text-gray-400 mt-1">
-            أضف أقساماً جديدة، عدّل عليها أو احذفها مباشرة وستنعكس فوراً في قاعدة بيانات Supabase
+            أضف أقساماً جديدة بصور حقيقية، أو عدّل واحذف أي قسم فوراً
           </p>
         </div>
 
         <button
           onClick={openAddModal}
-          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-accent to-yellow-500 text-primary font-black shadow-lg shadow-accent/25 hover:brightness-110 active:scale-95 transition flex items-center gap-2 text-sm"
+          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-accent to-yellow-500 text-primary font-black shadow-lg hover:brightness-110 transition flex items-center gap-2 text-sm"
         >
           <FiPlus className="text-lg" /> إضافة قسم جديد
         </button>
       </div>
 
-      {/* Stats Counter Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-surface/80 p-4 rounded-xl border border-surface-light flex items-center justify-between">
-          <div>
-            <p className="text-xs text-gray-400 font-bold">إجمالي الأقسام</p>
-            <p className="text-2xl font-black text-white mt-1">{categories.length}</p>
-          </div>
-          <span className="text-3xl p-3 bg-surface-dark rounded-xl">📚</span>
-        </div>
-
-        <div className="bg-surface/80 p-4 rounded-xl border border-surface-light flex items-center justify-between">
-          <div>
-            <p className="text-xs text-gray-400 font-bold">الأقسام النشطة في اللعبة</p>
-            <p className="text-2xl font-black text-success mt-1">{activeCount}</p>
-          </div>
-          <span className="text-3xl p-3 bg-surface-dark rounded-xl">🟢</span>
-        </div>
-
-        <div className="bg-surface/80 p-4 rounded-xl border border-surface-light flex items-center justify-between">
-          <div>
-            <p className="text-xs text-gray-400 font-bold">إجمالي الأسئلة في الأقسام</p>
-            <p className="text-2xl font-black text-accent mt-1">{totalQuestions}</p>
-          </div>
-          <span className="text-3xl p-3 bg-surface-dark rounded-xl">❓</span>
-        </div>
-      </div>
-
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-surface/60 p-4 rounded-xl border border-surface-light">
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface/60 p-4 rounded-xl border border-surface-light">
         <div className="relative flex-1">
           <FiSearch className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ابحث باسم القسم أو المعرّف بالإنجليزية..."
+            placeholder="ابحث باسم الفئة..."
             className="w-full bg-surface-dark border border-surface-light rounded-xl pr-10 pl-4 py-2.5 text-white placeholder-gray-500 focus:border-accent focus:outline-none text-sm"
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-            >
-              <FiX />
-            </button>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setFilterActive('all')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition border ${
-              filterActive === 'all'
-                ? 'bg-accent text-primary border-accent'
-                : 'bg-surface-dark text-gray-400 border-surface-light hover:text-white'
-            }`}
-          >
-            الكل ({categories.length})
+          <button onClick={() => setFilterActive('all')} className={`px-3.5 py-2 rounded-xl text-xs font-bold border ${filterActive === 'all' ? 'bg-accent text-primary border-accent' : 'bg-surface-dark text-gray-400 border-surface-light'}`}>
+            الكل ({mergedCategories.length})
           </button>
-          <button
-            onClick={() => setFilterActive('active')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition border ${
-              filterActive === 'active'
-                ? 'bg-success text-white border-success'
-                : 'bg-surface-dark text-gray-400 border-surface-light hover:text-white'
-            }`}
-          >
+          <button onClick={() => setFilterActive('active')} className={`px-3.5 py-2 rounded-xl text-xs font-bold border ${filterActive === 'active' ? 'bg-success text-white border-success' : 'bg-surface-dark text-gray-400 border-surface-light'}`}>
             المفعلة ({activeCount})
           </button>
-          <button
-            onClick={() => setFilterActive('inactive')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition border ${
-              filterActive === 'inactive'
-                ? 'bg-danger text-white border-danger'
-                : 'bg-surface-dark text-gray-400 border-surface-light hover:text-white'
-            }`}
-          >
-            المعطلة ({categories.length - activeCount})
-          </button>
-          <button
-            onClick={loadCategories}
-            className="p-2.5 rounded-xl bg-surface-dark text-gray-400 hover:text-accent border border-surface-light transition"
-            title="تحديث القائمة"
-          >
+          <button onClick={loadCategories} className="p-2.5 rounded-xl bg-surface-dark text-gray-400 hover:text-accent border border-surface-light">
             <FiRefreshCw className={isLoading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -946,75 +992,81 @@ function CategoriesTab() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-secondary border border-surface-light rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl relative"
+              className="bg-secondary border border-surface-light rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl relative my-auto"
               dir="rtl"
             >
               <div className="flex items-center justify-between pb-3 border-b border-surface-light">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span className="text-accent">{editCategory ? '✏️ تعديل القسم' : '➕ إضافة قسم جديد'}</span>
+                <h3 className="text-lg font-bold text-accent">
+                  {editCategory ? '✏️ تعديل الفئة' : '➕ إضافة فئة جديدة'}
                 </h3>
-                <button onClick={resetForm} className="text-gray-400 hover:text-white transition">
-                  <FiX size={20} />
-                </button>
+                <button onClick={resetForm} className="text-gray-400 hover:text-white"><FiX size={20} /></button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Arabic Name */}
-                <div>
-                  <label className="text-xs font-bold text-gray-300 block mb-1.5">اسم القسم بالعربية *</label>
-                  <input
-                    type="text"
-                    value={form.name_ar}
-                    onChange={(e) => setForm((p) => ({ ...p, name_ar: e.target.value, name: p.name || e.target.value }))}
-                    placeholder="مثال: دوري أبطال أوروبا، أنمي، معلومات عامة..."
-                    className="w-full bg-surface border border-surface-light rounded-xl px-3.5 py-2.5 text-white placeholder-gray-500 focus:border-accent focus:outline-none text-sm"
-                    required
-                  />
-                </div>
+                <InputField
+                  label="اسم الفئة بالعربية *"
+                  value={form.name_ar}
+                  onChange={(v) => setForm((p) => ({ ...p, name_ar: v, name: p.name || v }))}
+                  placeholder="مثال: دوري أبطال أوروبا..."
+                  required
+                />
 
-                {/* English Slug */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-bold text-gray-300">المعرّف بالإنجليزية (Slug) *</label>
-                    <button
-                      type="button"
-                      onClick={handleAutoSlug}
-                      className="text-xs text-accent hover:underline flex items-center gap-1"
-                    >
-                      توليد تلقائي
-                    </button>
+                    <button type="button" onClick={handleAutoSlug} className="text-xs text-accent hover:underline">توليد تلقائي</button>
                   </div>
                   <input
                     type="text"
                     value={form.slug}
                     onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
                     placeholder="champions-league"
-                    className="w-full bg-surface border border-surface-light rounded-xl px-3.5 py-2.5 text-white placeholder-gray-500 focus:border-accent focus:outline-none text-sm font-mono"
+                    className="w-full bg-surface border border-surface-light rounded-xl px-3.5 py-2 text-white text-sm font-mono focus:border-accent focus:outline-none"
                     dir="ltr"
                     required
                   />
                 </div>
 
-                {/* Emoji / Icon Selector */}
+                {/* Real Image URL + Live Preview */}
+                <div className="space-y-2">
+                  <InputField
+                    label="رابط صورة الفئة (Image URL)"
+                    value={form.image}
+                    onChange={(v) => setForm((p) => ({ ...p, image: v }))}
+                    placeholder="https://..."
+                    dir="ltr"
+                  />
+                  {form.image && (
+                    <div className="relative h-24 rounded-xl overflow-hidden border border-surface-light">
+                      <img
+                        src={form.image}
+                        alt="Preview"
+                        onError={(e) => { e.currentTarget.src = FALLBACK_CATEGORY_IMAGE; }}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-2.5">
+                        <span className="text-xs font-bold text-white">{form.icon} {form.name_ar || 'معاينة الصورة'}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div>
-                  <label className="text-xs font-bold text-gray-300 block mb-1.5">الأيقونة أو الإيموجي</label>
-                  <div className="flex items-center gap-2 mb-2">
+                  <label className="text-xs font-bold text-gray-300 block mb-1">الأيقونة</label>
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={form.icon}
                       onChange={(e) => setForm((p) => ({ ...p, icon: e.target.value }))}
-                      placeholder="⚽"
-                      className="w-14 h-12 text-center text-2xl bg-surface border border-surface-light rounded-xl text-white focus:border-accent focus:outline-none"
+                      className="w-12 h-10 text-center text-xl bg-surface border border-surface-light rounded-xl text-white"
                     />
-                    <div className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 px-2 bg-surface-dark rounded-xl border border-surface-light">
+                    <div className="flex-1 flex items-center gap-1 overflow-x-auto py-1 px-2 bg-surface-dark rounded-xl border border-surface-light">
                       {popularEmojis.map((emoji) => (
                         <button
                           key={emoji}
                           type="button"
                           onClick={() => setForm((p) => ({ ...p, icon: emoji }))}
-                          className={`text-xl p-1.5 rounded-lg hover:bg-surface transition ${
-                            form.icon === emoji ? 'bg-accent/20 scale-110' : ''
-                          }`}
+                          className={`text-lg p-1 rounded-lg ${form.icon === emoji ? 'bg-accent/30' : ''}`}
                         >
                           {emoji}
                         </button>
@@ -1023,83 +1075,16 @@ function CategoriesTab() {
                   </div>
                 </div>
 
-                {/* Color Selector */}
-                <div>
-                  <label className="text-xs font-bold text-gray-300 block mb-1.5">لون القسم المميز</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={form.color}
-                      onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))}
-                      className="w-10 h-10 rounded-xl cursor-pointer bg-transparent border-0"
-                    />
-                    <input
-                      type="text"
-                      value={form.color}
-                      onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))}
-                      className="w-28 bg-surface border border-surface-light rounded-xl px-3 py-2 text-white font-mono text-xs uppercase"
-                      dir="ltr"
-                    />
-                    <div className="flex items-center gap-1.5 flex-1 justify-end">
-                      {colorPresets.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => setForm((p) => ({ ...p, color: c }))}
-                          className={`w-6 h-6 rounded-full border border-white/20 transition ${
-                            form.color === c ? 'scale-125 ring-2 ring-accent' : ''
-                          }`}
-                          style={{ background: c }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sort Order & Status */}
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <label className="text-xs font-bold text-gray-300 block mb-1.5">ترتيب الظهور</label>
-                    <input
-                      type="number"
-                      value={form.sort_order}
-                      onChange={(e) => setForm((p) => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))}
-                      className="w-full bg-surface border border-surface-light rounded-xl px-3.5 py-2.5 text-white focus:border-accent focus:outline-none text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-gray-300 block mb-1.5">حالة التفعيل</label>
-                    <button
-                      type="button"
-                      onClick={() => setForm((p) => ({ ...p, is_active: !p.is_active }))}
-                      className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs border flex items-center justify-center gap-2 transition ${
-                        form.is_active
-                          ? 'bg-success/20 border-success text-success'
-                          : 'bg-surface border-surface-light text-gray-400'
-                      }`}
-                    >
-                      {form.is_active ? '✓ مفعل في اللعبة' : '✗ معطل (مخفي)'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-light">
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="px-5 py-2.5 rounded-xl bg-surface border border-surface-light text-gray-300 hover:bg-surface-light transition text-sm"
-                  >
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-surface-light">
+                  <button type="button" onClick={resetForm} className="px-4 py-2 rounded-xl bg-surface border border-surface-light text-gray-300 text-sm">
                     إلغاء
                   </button>
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-accent to-yellow-500 text-primary font-black shadow-lg shadow-accent/25 hover:brightness-110 active:scale-95 transition text-sm flex items-center gap-2 disabled:opacity-50"
+                    className="px-6 py-2 rounded-xl bg-accent text-primary font-black text-sm disabled:opacity-50"
                   >
-                    {actionLoading && <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
-                    {editCategory ? 'حفظ التعديلات' : 'إضافة القسم لقاعدة البيانات'}
+                    {editCategory ? 'حفظ التعديلات' : 'إضافة القسم'}
                   </button>
                 </div>
               </form>
@@ -1108,126 +1093,58 @@ function CategoriesTab() {
         )}
       </AnimatePresence>
 
-      {/* Category List */}
-      {isLoading && !categories.length ? (
-        <Spinner />
-      ) : (
-        <div className="space-y-2.5">
-          {filtered.length === 0 && (
-            <div className="text-center text-gray-500 py-16 bg-surface/30 rounded-2xl border border-surface-light">
-              <span className="text-4xl block mb-2">📁</span>
-              لا توجد أقسام مطابقة للبحث
+      {/* Categories Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {filtered.map((cat) => {
+          const isActive = cat.is_active !== false;
+          return (
+            <div
+              key={cat.id || cat.slug}
+              className={`bg-surface/80 rounded-2xl border p-3.5 flex items-center justify-between gap-3 ${
+                isActive ? 'border-surface-light' : 'border-danger/30 opacity-60'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <img
+                  src={cat.image || FALLBACK_CATEGORY_IMAGE}
+                  alt={cat.name_ar || cat.name}
+                  onError={(e) => { e.currentTarget.src = FALLBACK_CATEGORY_IMAGE; }}
+                  className="w-14 h-14 rounded-xl object-cover border border-white/10 flex-shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span>{cat.icon}</span>
+                    <h4 className="text-sm font-bold text-white truncate">{cat.name_ar || cat.name}</h4>
+                  </div>
+                  <div className="text-[11px] font-mono text-gray-400 truncate">{cat.slug}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  onClick={() => handleToggleActive(cat)}
+                  className={`p-2 rounded-lg border text-xs ${
+                    isActive ? 'bg-success/15 border-success/40 text-success' : 'bg-surface-dark border-surface-light text-gray-500'
+                  }`}
+                >
+                  {isActive ? <FiEye /> : <FiEyeOff />}
+                </button>
+                <button onClick={() => openEditModal(cat)} className="p-2 rounded-lg bg-surface-dark border border-surface-light text-gray-300 hover:text-accent">
+                  <FiEdit2 />
+                </button>
+                <button onClick={() => setConfirmDelete(cat)} className="p-2 rounded-lg bg-danger/10 border border-danger/30 text-danger hover:bg-danger hover:text-white">
+                  <FiTrash2 />
+                </button>
+              </div>
             </div>
-          )}
+          );
+        })}
+      </div>
 
-          {filtered.map((cat, idx) => {
-            const isActive = cat.is_active !== false;
-            return (
-              <motion.div
-                key={cat.id || cat.slug}
-                layout
-                className={`bg-surface/80 rounded-2xl border transition-all p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                  isActive ? 'border-surface-light hover:border-gray-500' : 'border-danger/30 opacity-70 bg-surface/40'
-                }`}
-              >
-                {/* Left (Order + Icon + Info) */}
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  {/* Reorder arrows */}
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      onClick={() => moveCategory(idx, -1)}
-                      className="text-gray-500 hover:text-accent transition p-0.5"
-                      title="تحريك لأعلى"
-                    >
-                      <FiArrowUp size={14} />
-                    </button>
-                    <button
-                      onClick={() => moveCategory(idx, 1)}
-                      className="text-gray-500 hover:text-accent transition p-0.5"
-                      title="تحريك لأسفل"
-                    >
-                      <FiArrowDown size={14} />
-                    </button>
-                  </div>
-
-                  {/* Icon badge */}
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 shadow-inner border border-white/10"
-                    style={{ background: `${cat.color || '#e2b714'}25` }}
-                  >
-                    {cat.icon || '📁'}
-                  </div>
-
-                  {/* Name and Slug */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-base font-bold text-white truncate">
-                        {cat.name_ar || cat.name}
-                      </h4>
-                      <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surface-dark text-gray-400 border border-surface-light">
-                        {cat.slug}
-                      </span>
-                      {cat.is_custom && (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-accent/20 text-accent font-bold">
-                          قسم مخصص
-                        </span>
-                      )}
-                    </div>
-                    {cat.description && (
-                      <p className="text-xs text-gray-400 truncate mt-0.5">{cat.description}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right (Stats & Controls) */}
-                <div className="flex items-center gap-3 justify-end flex-shrink-0">
-                  {/* Questions count badge */}
-                  <span className="text-xs px-3 py-1.5 rounded-xl bg-surface-dark text-gray-300 border border-surface-light font-bold flex items-center gap-1.5">
-                    <span>❓</span> {cat.questionCount ?? 0} سؤال
-                  </span>
-
-                  {/* Active Toggle */}
-                  <button
-                    onClick={() => handleToggleActive(cat)}
-                    className={`p-2.5 rounded-xl border transition ${
-                      isActive
-                        ? 'bg-success/15 border-success/40 text-success hover:bg-success/25'
-                        : 'bg-surface-dark border-surface-light text-gray-500 hover:text-gray-300'
-                    }`}
-                    title={isActive ? 'تعطيل وإخفاء من اللعبة' : 'تفعيل باللعبة'}
-                  >
-                    {isActive ? <FiEye size={16} /> : <FiEyeOff size={16} />}
-                  </button>
-
-                  {/* Edit Button */}
-                  <button
-                    onClick={() => openEditModal(cat)}
-                    className="p-2.5 rounded-xl bg-surface-dark border border-surface-light text-gray-400 hover:text-accent hover:border-accent transition"
-                    title="تعديل القسم"
-                  >
-                    <FiEdit2 size={16} />
-                  </button>
-
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => setConfirmDelete(cat)}
-                    className="p-2.5 rounded-xl bg-danger/10 border border-danger/30 text-danger hover:bg-danger hover:text-white transition"
-                    title="حذف القسم نهائياً من قاعدة البيانات"
-                  >
-                    <FiTrash2 size={16} />
-                  </button>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         open={!!confirmDelete}
         title="تأكيد حذف القسم"
-        message={`هل أنت متأكد تماماً من رغبتك بحذف قسم "${confirmDelete?.name_ar || confirmDelete?.name}" نهائياً من قاعدة بيانات Supabase؟ سيتم حذف جميع البيانات المرتبطة به.`}
+        message={`هل أنت متأكد من حذف "${confirmDelete?.name_ar || confirmDelete?.name}"؟`}
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(null)}
       />
@@ -1236,20 +1153,29 @@ function CategoriesTab() {
 }
 
 /* ════════════════════════════════════════════════════
-   TAB 3: QUESTIONS MANAGER
+   TAB 3: QUESTIONS MANAGER (متوافق مع نظام الإجابة الواحدة)
    ════════════════════════════════════════════════════ */
 function QuestionsTab() {
   const {
     questions, categories, loadQuestions, loadCategories,
     addQuestion, updateQuestion, deleteQuestion, isLoading, questionsMeta,
   } = useAdminStore();
-  const [filters, setFilters] = useState({ category: '', subcategory: '', difficulty: '', points: '', search: '', page: 1 });
+
+  const [filters, setFilters] = useState({ category: '', difficulty: '', points: '', search: '', page: 1 });
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+
   const emptyQ = {
-    category: '', subcategory: '', question: '', options: ['', '', '', ''],
-    correctAnswer: 0, points: 200, difficulty: 'easy', mediaType: null, mediaUrl: '', explanation: '',
+    category: 'premier-league',
+    subcategory: 'premier-league',
+    question: '',
+    correctAnswerText: '',
+    points: 200,
+    difficulty: 'easy',
+    mediaType: null,
+    mediaUrl: '',
+    explanation: '',
   };
   const [form, setForm] = useState({ ...emptyQ });
 
@@ -1257,6 +1183,27 @@ function QuestionsTab() {
     loadCategories();
     loadQuestions(filters);
   }, []);
+
+  // Build unified slug-based category options (24 built-in + custom)
+  const categoryOptions = React.useMemo(() => {
+    const map = new Map();
+    ALL_AVAILABLE_CATEGORIES.forEach((c) => {
+      map.set(c.id, { value: c.id, label: `${c.icon} ${c.name}` });
+    });
+    (categories || []).forEach((c) => {
+      const slug = c.slug || c.id;
+      if (slug && !map.has(slug)) {
+        map.set(slug, { value: slug, label: `${c.icon || '🎯'} ${c.name_ar || c.name}` });
+      }
+    });
+    return Array.from(map.values());
+  }, [categories]);
+
+  const categoryNameMap = React.useMemo(() => {
+    const m = {};
+    categoryOptions.forEach((o) => { m[o.value] = o.label; });
+    return m;
+  }, [categoryOptions]);
 
   const applyFilters = (newFilters) => {
     const f = { ...filters, ...newFilters, page: 1 };
@@ -1270,11 +1217,30 @@ function QuestionsTab() {
     loadQuestions(f);
   };
 
-  const resetForm = () => { setForm({ ...emptyQ }); setEditId(null); setShowForm(false); };
+  const resetForm = () => {
+    setForm({ ...emptyQ });
+    setEditId(null);
+    setShowForm(false);
+  };
 
-  const handleSubmit = async () => {
-    if (!form.question.trim() || !form.category) return;
-    const payload = { ...form };
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    if (!form.question.trim() || !form.correctAnswerText.trim() || !form.category) return;
+
+    const payload = {
+      category: form.category,
+      subcategory: form.category,
+      question: form.question.trim(),
+      correctAnswerText: form.correctAnswerText.trim(),
+      options: [form.correctAnswerText.trim()],
+      correctAnswer: 0,
+      points: Number(form.points) || 200,
+      difficulty: form.difficulty || 'medium',
+      mediaType: form.mediaType,
+      mediaUrl: form.mediaUrl,
+      explanation: form.explanation,
+    };
+
     if (editId) {
       await updateQuestion(editId, payload);
     } else {
@@ -1285,12 +1251,20 @@ function QuestionsTab() {
   };
 
   const startEdit = (q) => {
+    const ansText =
+      q.correctAnswerText ||
+      (q.options && typeof q.correctAnswer === 'number' ? q.options[q.correctAnswer] : '') ||
+      '';
     setForm({
-      category: q.category || '', subcategory: q.subcategory || '',
-      question: q.question, options: q.options ? [...q.options] : ['', '', '', ''],
-      correctAnswer: q.correctAnswer ?? 0, points: q.points || 200,
-      difficulty: q.difficulty || 'easy', mediaType: q.mediaType || null,
-      mediaUrl: q.mediaUrl || '', explanation: q.explanation || '',
+      category: q.subcategory || q.category || 'premier-league',
+      subcategory: q.subcategory || q.category || 'premier-league',
+      question: q.question || '',
+      correctAnswerText: ansText,
+      points: q.points || 200,
+      difficulty: q.difficulty || 'easy',
+      mediaType: q.mediaType || null,
+      mediaUrl: q.mediaUrl || '',
+      explanation: q.explanation || '',
     });
     setEditId(q.id);
     setShowForm(true);
@@ -1303,32 +1277,25 @@ function QuestionsTab() {
     }
   };
 
-  const selectedCat = categories.find((c) => c.id === form.category || c.name === form.category);
-  const subcategories = selectedCat?.subcategories || [];
-
-  const filterCatOptions = categories.map((c) => ({ value: c.id || c.name, label: c.name }));
-  const filterSubOptions = (() => {
-    const fc = categories.find((c) => (c.id || c.name) === filters.category);
-    return (fc?.subcategories || []).map((s) => ({ value: s.id || s.name, label: s.name }));
-  })();
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">❓ إدارة الأسئلة</h2>
+      <div className="flex items-center justify-between flex-wrap gap-3 bg-secondary/80 p-5 rounded-2xl border border-surface-light">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">❓ إدارة بنك الأسئلة</h2>
+          <p className="text-xs text-gray-400 mt-1">أضف أسئلة بالإجابة الصحيحة الواحدة (بدون خيارات متعددة) لأي فئة فوراً</p>
+        </div>
         <button
           onClick={() => { resetForm(); setShowForm(!showForm); }}
-          className="px-4 py-2 rounded-xl bg-accent text-primary font-bold hover:bg-yellow-500 transition flex items-center gap-2"
+          className="px-5 py-2.5 rounded-xl bg-accent text-primary font-black hover:brightness-110 transition flex items-center gap-2 text-sm"
         >
-          <FiPlus /> إضافة سؤال
+          <FiPlus /> إضافة سؤال جديد
         </button>
       </div>
 
       {/* Filter Bar */}
       <div className="bg-surface rounded-xl p-4 border border-surface-light">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <SelectField placeholder="كل الفئات" value={filters.category} onChange={(v) => applyFilters({ category: v, subcategory: '' })} options={filterCatOptions} />
-          <SelectField placeholder="الفئة الفرعية" value={filters.subcategory} onChange={(v) => applyFilters({ subcategory: v })} options={filterSubOptions} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <SelectField placeholder="كل الفئات" value={filters.category} onChange={(v) => applyFilters({ category: v })} options={categoryOptions} />
           <SelectField
             placeholder="الصعوبة"
             value={filters.difficulty}
@@ -1341,14 +1308,14 @@ function QuestionsTab() {
             onChange={(v) => applyFilters({ points: v })}
             options={[{ value: '200', label: '200' }, { value: '400', label: '400' }, { value: '600', label: '600' }]}
           />
-          <div className="col-span-2 sm:col-span-1 lg:col-span-2 relative">
+          <div className="lg:col-span-2 relative">
             <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input
               type="text"
               value={filters.search}
               onChange={(e) => applyFilters({ search: e.target.value })}
-              placeholder="بحث..."
-              className="w-full bg-surface-dark border border-surface-light rounded-lg pr-10 pl-3 py-2 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition font-arabic"
+              placeholder="بحث في نص السؤال أو الإجابة..."
+              className="w-full bg-surface-dark border border-surface-light rounded-lg pr-10 pl-3 py-2 text-white placeholder-gray-500 focus:border-accent focus:outline-none text-sm"
               dir="rtl"
             />
           </div>
@@ -1362,101 +1329,79 @@ function QuestionsTab() {
             initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="bg-surface rounded-xl p-5 border border-accent/30 space-y-4">
-              <h3 className="text-accent font-bold text-lg">{editId ? 'تعديل السؤال' : 'سؤال جديد'}</h3>
+            <form onSubmit={handleSubmit} className="bg-surface rounded-2xl p-6 border border-accent/40 space-y-4 shadow-xl">
+              <h3 className="text-accent font-black text-lg">{editId ? '✏️ تعديل السؤال' : '➕ إضافة سؤال جديد'}</h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <SelectField
-                  label="الفئة"
+                  label="الفئة *"
                   value={form.category}
-                  onChange={(v) => setForm((p) => ({ ...p, category: v, subcategory: '' }))}
-                  options={categories.map((c) => ({ value: c.id || c.name, label: c.name }))}
-                  placeholder="اختر الفئة"
+                  onChange={(v) => setForm((p) => ({ ...p, category: v, subcategory: v }))}
+                  options={categoryOptions}
                 />
                 <SelectField
-                  label="الفئة الفرعية"
-                  value={form.subcategory}
-                  onChange={(v) => setForm((p) => ({ ...p, subcategory: v }))}
-                  options={subcategories.map((s) => ({ value: s.id || s.name, label: s.name }))}
-                  placeholder="اختر الفئة الفرعية"
+                  label="النقاط"
+                  value={String(form.points)}
+                  onChange={(v) => setForm((p) => ({ ...p, points: parseInt(v) }))}
+                  options={[{ value: '200', label: '200 نقطة (سهل)' }, { value: '400', label: '400 نقطة (متوسط)' }, { value: '600', label: '600 نقطة (صعب)' }]}
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <SelectField
-                    label="النقاط"
-                    value={String(form.points)}
-                    onChange={(v) => setForm((p) => ({ ...p, points: parseInt(v) }))}
-                    options={[{ value: '200', label: '200' }, { value: '400', label: '400' }, { value: '600', label: '600' }]}
-                  />
-                  <SelectField
-                    label="الصعوبة"
-                    value={form.difficulty}
-                    onChange={(v) => setForm((p) => ({ ...p, difficulty: v }))}
-                    options={[{ value: 'easy', label: 'سهل' }, { value: 'medium', label: 'متوسط' }, { value: 'hard', label: 'صعب' }]}
-                  />
-                </div>
+                <SelectField
+                  label="الصعوبة"
+                  value={form.difficulty}
+                  onChange={(v) => setForm((p) => ({ ...p, difficulty: v }))}
+                  options={[{ value: 'easy', label: 'سهل' }, { value: 'medium', label: 'متوسط' }, { value: 'hard', label: 'صعب' }]}
+                />
               </div>
 
-              {/* Question text */}
               <div>
-                <label className="text-sm text-gray-400 block mb-1">نص السؤال</label>
+                <label className="text-xs font-bold text-gray-300 block mb-1">نص السؤال *</label>
                 <textarea
                   value={form.question}
                   onChange={(e) => setForm((p) => ({ ...p, question: e.target.value }))}
-                  placeholder="اكتب السؤال هنا..."
-                  rows={3}
-                  dir="rtl"
-                  className="w-full bg-surface-dark border border-surface-light rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition font-arabic resize-none"
+                  placeholder="اكتب السؤال بوضوح هنا..."
+                  rows={2}
+                  required
+                  className="w-full bg-surface-dark border border-surface-light rounded-xl px-3.5 py-2.5 text-white placeholder-gray-500 focus:border-accent focus:outline-none text-sm resize-none"
                 />
               </div>
 
-              {/* Answer Options */}
               <div>
-                <label className="text-sm text-gray-400 block mb-2">خيارات الإجابة (اختر الصحيحة)</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {form.options.map((opt, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="correctAnswer"
-                        checked={form.correctAnswer === i}
-                        onChange={() => setForm((p) => ({ ...p, correctAnswer: i }))}
-                        className="w-4 h-4 accent-accent"
-                      />
-                      <input
-                        type="text"
-                        value={opt}
-                        onChange={(e) => {
-                          const newOpts = [...form.options];
-                          newOpts[i] = e.target.value;
-                          setForm((p) => ({ ...p, options: newOpts }));
-                        }}
-                        placeholder={`الخيار ${i + 1}`}
-                        dir="rtl"
-                        className={`flex-1 bg-surface-dark border rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none transition font-arabic ${
-                          form.correctAnswer === i ? 'border-success' : 'border-surface-light focus:border-accent'
-                        }`}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <label className="text-xs font-bold text-emerald-400 block mb-1">الإجابة الصحيحة المعتمدة (تظهر عند ضغط كشف الإجابة) *</label>
+                <input
+                  type="text"
+                  value={form.correctAnswerText}
+                  onChange={(e) => setForm((p) => ({ ...p, correctAnswerText: e.target.value }))}
+                  placeholder="اكتب الإجابة الصحيحة هنا..."
+                  required
+                  className="w-full bg-surface-dark border-2 border-emerald-500/40 rounded-xl px-3.5 py-2.5 text-emerald-300 font-bold placeholder-gray-500 focus:border-emerald-400 focus:outline-none text-sm"
+                />
               </div>
 
-              {/* Media */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-400 block mb-2">نوع الوسائط</label>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">تفسير أو معلومة إضافية (اختياري)</label>
+                  <input
+                    type="text"
+                    value={form.explanation}
+                    onChange={(e) => setForm((p) => ({ ...p, explanation: e.target.value }))}
+                    placeholder="معلومة قصيرة تظهر بعد كشف الإجابة..."
+                    className="w-full bg-surface-dark border border-surface-light rounded-xl px-3.5 py-2 text-white text-sm focus:border-accent focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">نوع الوسائط (اختياري)</label>
                   <div className="flex gap-2">
                     {[
                       { val: null, label: 'بدون', icon: <FiX /> },
                       { val: 'image', label: 'صورة', icon: <FiImage /> },
                       { val: 'audio', label: 'صوت', icon: <FiMusic /> },
-                      { val: 'sketch', label: 'رسم', icon: <FiPenTool /> },
                     ].map(({ val, label, icon }) => (
                       <button
+                        type="button"
                         key={label}
                         onClick={() => setForm((p) => ({ ...p, mediaType: val, mediaUrl: val ? p.mediaUrl : '' }))}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition ${
-                          form.mediaType === val ? 'bg-accent text-primary font-bold' : 'bg-surface-dark text-gray-400 hover:bg-surface-light'
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs transition ${
+                          form.mediaType === val ? 'bg-accent text-primary font-bold' : 'bg-surface-dark text-gray-400'
                         }`}
                       >
                         {icon} {label}
@@ -1464,38 +1409,25 @@ function QuestionsTab() {
                     ))}
                   </div>
                 </div>
-                {form.mediaType && (
-                  <InputField
-                    label="رابط الوسائط"
-                    value={form.mediaUrl}
-                    onChange={(v) => setForm((p) => ({ ...p, mediaUrl: v }))}
-                    placeholder="https://..."
-                    dir="ltr"
-                  />
-                )}
               </div>
 
-              {/* Explanation */}
-              <div>
-                <label className="text-sm text-gray-400 block mb-1">التفسير (يظهر بعد الإجابة)</label>
-                <textarea
-                  value={form.explanation}
-                  onChange={(e) => setForm((p) => ({ ...p, explanation: e.target.value }))}
-                  placeholder="شرح الإجابة الصحيحة..."
-                  rows={2}
-                  dir="rtl"
-                  className="w-full bg-surface-dark border border-surface-light rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:border-accent focus:outline-none transition font-arabic resize-none"
+              {form.mediaType && (
+                <InputField
+                  label="رابط الصورة أو الصوت"
+                  value={form.mediaUrl}
+                  onChange={(v) => setForm((p) => ({ ...p, mediaUrl: v }))}
+                  placeholder="https://..."
+                  dir="ltr"
                 />
-              </div>
+              )}
 
-              {/* Actions */}
-              <div className="flex gap-3 justify-end">
-                <button onClick={resetForm} className="px-4 py-2 rounded-lg bg-surface-light text-gray-300 hover:bg-surface transition">إلغاء</button>
-                <button onClick={handleSubmit} disabled={isLoading} className="px-4 py-2 rounded-lg bg-accent text-primary font-bold hover:bg-yellow-500 transition disabled:opacity-50">
-                  {editId ? 'حفظ التعديلات' : 'إضافة السؤال'}
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={resetForm} className="px-4 py-2 rounded-xl bg-surface-light text-gray-300 text-sm">إلغاء</button>
+                <button type="submit" disabled={isLoading} className="px-6 py-2 rounded-xl bg-accent text-primary font-black hover:brightness-110 transition text-sm">
+                  {editId ? 'حفظ التعديلات' : 'حفظ السؤال'}
                 </button>
               </div>
-            </div>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1503,73 +1435,61 @@ function QuestionsTab() {
       {/* Questions Table */}
       {isLoading && !questions.length ? <Spinner /> : (
         <>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto bg-surface/60 rounded-2xl border border-surface-light">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-surface-light text-gray-400">
-                  <th className="text-right py-3 px-3">السؤال</th>
-                  <th className="text-right py-3 px-3 hidden sm:table-cell">الفئة</th>
+                  <th className="text-right py-3 px-4">السؤال</th>
+                  <th className="text-right py-3 px-3 hidden sm:table-cell">الإجابة الصحيحة</th>
+                  <th className="text-right py-3 px-3 hidden md:table-cell">الفئة</th>
                   <th className="text-center py-3 px-3">النقاط</th>
-                  <th className="text-center py-3 px-3 hidden md:table-cell">الصعوبة</th>
-                  <th className="text-center py-3 px-3 hidden lg:table-cell">وسائط</th>
                   <th className="text-center py-3 px-3">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
                 {questions.length === 0 && (
-                  <tr><td colSpan={6} className="text-center text-gray-500 py-12">لا توجد أسئلة</td></tr>
+                  <tr><td colSpan={5} className="text-center text-gray-500 py-12">لا توجد أسئلة مطابقة</td></tr>
                 )}
-                {questions.map((q) => (
-                  <tr key={q.id} className="border-b border-surface-light/30 hover:bg-surface/30 transition">
-                    <td className="py-3 px-3 text-white max-w-[260px] truncate">{q.question}</td>
-                    <td className="py-3 px-3 text-gray-400 hidden sm:table-cell">{q.category}</td>
-                    <td className="py-3 px-3 text-center">
-                      <span className="bg-accent/20 text-accent px-2 py-0.5 rounded-md text-xs font-bold">{q.points}</span>
-                    </td>
-                    <td className="py-3 px-3 text-center hidden md:table-cell">
-                      <span className={`px-2 py-0.5 rounded-md text-xs ${
-                        q.difficulty === 'easy' ? 'bg-success/20 text-success' :
-                        q.difficulty === 'medium' ? 'bg-warning/20 text-warning' : 'bg-danger/20 text-danger'
-                      }`}>
-                        {DIFFICULTY_MAP[q.difficulty] || q.difficulty}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-center hidden lg:table-cell">
-                      {q.mediaType ? (
-                        <span className="text-xs bg-surface-light text-gray-300 px-2 py-0.5 rounded-md">
-                          {q.mediaType === 'image' ? '🖼️' : q.mediaType === 'audio' ? '🔊' : '✏️'}
-                        </span>
-                      ) : <span className="text-gray-600">—</span>}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => startEdit(q)} className="p-1.5 text-gray-400 hover:text-accent transition"><FiEdit2 size={15} /></button>
-                        <button onClick={() => setConfirmDelete(q.id)} className="p-1.5 text-gray-400 hover:text-danger transition"><FiTrash2 size={15} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {questions.map((q) => {
+                  const ans = q.correctAnswerText || (q.options && typeof q.correctAnswer === 'number' ? q.options[q.correctAnswer] : '');
+                  const catLabel = categoryNameMap[q.subcategory] || categoryNameMap[q.category] || q.subcategory || q.category;
+                  return (
+                    <tr key={q.id} className="border-b border-surface-light/30 hover:bg-surface/40 transition">
+                      <td className="py-3 px-4 text-white max-w-[260px] truncate">{q.question}</td>
+                      <td className="py-3 px-3 text-emerald-400 font-bold max-w-[160px] truncate hidden sm:table-cell">{ans}</td>
+                      <td className="py-3 px-3 text-gray-300 text-xs hidden md:table-cell">{catLabel}</td>
+                      <td className="py-3 px-3 text-center">
+                        <span className="bg-accent/20 text-accent px-2.5 py-0.5 rounded-md text-xs font-bold">{q.points}</span>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => startEdit(q)} className="p-1.5 text-gray-400 hover:text-accent"><FiEdit2 size={15} /></button>
+                          <button onClick={() => setConfirmDelete(q.id)} className="p-1.5 text-gray-400 hover:text-danger"><FiTrash2 size={15} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination */}
           {questionsMeta.totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => changePage(Math.max(1, questionsMeta.page - 1))}
                 disabled={questionsMeta.page <= 1}
-                className="p-2 rounded-lg bg-surface text-gray-400 hover:text-white disabled:opacity-30 transition"
+                className="p-2 rounded-lg bg-surface text-gray-400 hover:text-white disabled:opacity-30"
               >
                 <FiChevronRight />
               </button>
               <span className="text-gray-400 text-sm">
-                صفحة {questionsMeta.page} من {questionsMeta.totalPages}
+                صفحة {questionsMeta.page} من {questionsMeta.totalPages} ({questionsMeta.total} سؤال)
               </span>
               <button
                 onClick={() => changePage(Math.min(questionsMeta.totalPages, questionsMeta.page + 1))}
                 disabled={questionsMeta.page >= questionsMeta.totalPages}
-                className="p-2 rounded-lg bg-surface text-gray-400 hover:text-white disabled:opacity-30 transition"
+                className="p-2 rounded-lg bg-surface text-gray-400 hover:text-white disabled:opacity-30"
               >
                 <FiChevronLeft />
               </button>
@@ -1606,35 +1526,32 @@ function SettingsTab() {
     }));
   };
 
-  const handleSave = () => updateSettings(local);
-
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-white flex items-center gap-2">⚙️ إعدادات اللعبة</h2>
+      <h2 className="text-xl font-black text-white flex items-center gap-2">⚙️ إعدادات وقوانين اللعب</h2>
 
-      {/* Lifelines */}
-      <div className="bg-surface rounded-xl p-5 border border-surface-light space-y-4">
-        <h3 className="text-accent font-bold text-lg">🃏 وسائل المساعدة</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="bg-surface rounded-2xl p-5 border border-surface-light space-y-4">
+        <h3 className="text-accent font-bold text-base">🃏 خطوط النجاة المتاحة</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Object.entries(LIFELINE_LABELS).map(([key, label]) => (
-            <div key={key} className="bg-surface-dark rounded-lg p-3 flex items-center justify-between">
-              <span className="text-gray-300">{label}</span>
+            <div key={key} className="bg-surface-dark rounded-xl p-3 flex items-center justify-between">
+              <span className="text-gray-200 text-sm font-bold">{label}</span>
               <ToggleSwitch checked={local.lifelines?.[key] ?? true} onChange={() => toggleLifeline(key)} />
             </div>
           ))}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <div>
-            <label className="text-sm text-gray-400 block mb-2">الحد الأقصى لكل لعبة</label>
+            <label className="text-xs font-bold text-gray-300 block mb-2">الحد الأقصى لكل فريق في المباراة</label>
             <input
               type="number" min="1" max="6"
               value={local.maxLifelinesPerGame ?? 3}
               onChange={(e) => setLocal((p) => ({ ...p, maxLifelinesPerGame: parseInt(e.target.value) || 3 }))}
-              className="w-full bg-surface-dark border border-surface-light rounded-lg px-3 py-2 text-white focus:border-accent focus:outline-none transition"
+              className="w-full bg-surface-dark border border-surface-light rounded-xl px-3 py-2 text-white text-sm"
             />
           </div>
           <div>
-            <label className="text-sm text-gray-400 block mb-2">نسبة مكافأة القنبلة: {local.bombBonusChance ?? 50}%</label>
+            <label className="text-xs font-bold text-gray-300 block mb-2">نسبة نجاح القنبلة: {local.bombBonusChance ?? 50}%</label>
             <input
               type="range" min="0" max="100" step="5"
               value={local.bombBonusChance ?? 50}
@@ -1645,51 +1562,45 @@ function SettingsTab() {
         </div>
       </div>
 
-      {/* Timer */}
-      <div className="bg-surface rounded-xl p-5 border border-surface-light space-y-4">
-        <h3 className="text-accent font-bold text-lg">⏱️ المؤقت</h3>
+      <div className="bg-surface rounded-2xl p-5 border border-surface-light space-y-4">
+        <h3 className="text-accent font-bold text-base">⏱️ المؤقت وقيم النقاط</h3>
         <div>
-          <label className="text-sm text-gray-400 block mb-2">وقت الإجابة: {local.questionTimer ?? 30} ثانية</label>
+          <label className="text-xs font-bold text-gray-300 block mb-2">وقت السؤال الافتراضي: {local.questionTimer ?? 30} ثانية</label>
           <input
             type="range" min="10" max="120" step="5"
             value={local.questionTimer ?? 30}
             onChange={(e) => setLocal((p) => ({ ...p, questionTimer: parseInt(e.target.value) }))}
             className="w-full accent-accent"
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>10 ث</span><span>120 ث</span>
-          </div>
         </div>
-      </div>
-
-      {/* Point Values */}
-      <div className="bg-surface rounded-xl p-5 border border-surface-light space-y-4">
-        <h3 className="text-accent font-bold text-lg">🏆 قيم النقاط</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { key: 'easy', label: 'سهل', default: 200 },
-            { key: 'medium', label: 'متوسط', default: 400 },
-            { key: 'hard', label: 'صعب', default: 600 },
-          ].map(({ key, label, default: def }) => (
+            { key: 'easy', label: 'نقاط السهل', def: 200 },
+            { key: 'medium', label: 'نقاط المتوسط', def: 400 },
+            { key: 'hard', label: 'نقاط الصعب', def: 600 },
+          ].map(({ key, label, def }) => (
             <div key={key}>
-              <label className="text-sm text-gray-400 block mb-1">{label}</label>
+              <label className="text-xs font-bold text-gray-300 block mb-1">{label}</label>
               <input
-                type="number" min="0" step="50"
+                type="number" min="50" step="50"
                 value={local.pointValues?.[key] ?? def}
                 onChange={(e) => setLocal((p) => ({
                   ...p,
                   pointValues: { ...p.pointValues, [key]: parseInt(e.target.value) || def },
                 }))}
-                className="w-full bg-surface-dark border border-surface-light rounded-lg px-3 py-2 text-white focus:border-accent focus:outline-none transition"
+                className="w-full bg-surface-dark border border-surface-light rounded-xl px-3 py-2 text-white text-sm"
               />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Save */}
       <div className="flex justify-end">
-        <button onClick={handleSave} disabled={isLoading} className="px-6 py-2.5 rounded-xl bg-accent text-primary font-bold hover:bg-yellow-500 transition flex items-center gap-2 disabled:opacity-50">
+        <button
+          onClick={() => updateSettings(local)}
+          disabled={isLoading}
+          className="px-6 py-2.5 rounded-xl bg-accent text-primary font-black hover:brightness-110 transition flex items-center gap-2 text-sm disabled:opacity-50"
+        >
           <FiSave /> حفظ الإعدادات
         </button>
       </div>
@@ -1706,7 +1617,7 @@ function MonitorTab() {
     closeRoom, resetLeaderboard, isLoading,
   } = useAdminStore();
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const [resetStep, setResetStep] = useState(0); // 0=none, 1=first confirm, 2=second confirm
+  const [resetStep, setResetStep] = useState(0);
   const intervalRef = useRef(null);
 
   const refreshAll = useCallback(() => {
@@ -1737,54 +1648,40 @@ function MonitorTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">👥 المستخدمون والغرف</h2>
+        <h2 className="text-xl font-black text-white flex items-center gap-2">👥 مراقبة المستخدمين والغرف</h2>
         <div className="flex items-center gap-4">
           <ToggleSwitch checked={autoRefresh} onChange={setAutoRefresh} label="تحديث تلقائي" />
-          <button onClick={refreshAll} className="p-2 rounded-lg bg-surface text-gray-400 hover:text-accent transition">
+          <button onClick={refreshAll} className="p-2 rounded-lg bg-surface text-gray-400 hover:text-accent">
             <FiRefreshCw className={isLoading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
-      {/* Active Rooms */}
-      <div className="bg-surface rounded-xl border border-surface-light overflow-hidden">
+      <div className="bg-surface rounded-2xl border border-surface-light overflow-hidden">
         <div className="p-4 border-b border-surface-light">
-          <h3 className="text-accent font-bold flex items-center gap-2"><FiGrid /> الغرف النشطة ({rooms.length})</h3>
+          <h3 className="text-accent font-bold flex items-center gap-2 text-sm"><FiGrid /> الغرف النشطة ({rooms.length})</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-surface-light text-gray-400">
+              <tr className="border-b border-surface-light text-gray-400 text-xs">
                 <th className="text-right py-3 px-4">الكود</th>
                 <th className="text-right py-3 px-4">المضيف</th>
                 <th className="text-center py-3 px-4">اللاعبون</th>
-                <th className="text-center py-3 px-4 hidden sm:table-cell">الوضع</th>
-                <th className="text-center py-3 px-4 hidden md:table-cell">الحالة</th>
                 <th className="text-center py-3 px-4">إجراء</th>
               </tr>
             </thead>
             <tbody>
               {rooms.length === 0 && (
-                <tr><td colSpan={6} className="text-center text-gray-500 py-8">لا توجد غرف نشطة</td></tr>
+                <tr><td colSpan={4} className="text-center text-gray-500 py-8 text-xs">لا توجد غرف نشطة حالياً</td></tr>
               )}
               {rooms.map((r) => (
-                <tr key={r.code} className="border-b border-surface-light/30 hover:bg-surface/30 transition">
+                <tr key={r.code} className="border-b border-surface-light/30">
                   <td className="py-3 px-4 text-accent font-mono font-bold">{r.code}</td>
-                  <td className="py-3 px-4 text-white">{r.host?.nickname || r.hostName || '—'}</td>
-                  <td className="py-3 px-4 text-center text-gray-300">{r.players?.length ?? r.playerCount ?? 0}</td>
-                  <td className="py-3 px-4 text-center text-gray-400 hidden sm:table-cell">{r.mode === 'team' ? 'فرق' : 'فردي'}</td>
-                  <td className="py-3 px-4 text-center hidden md:table-cell">
-                    <span className={`px-2 py-0.5 rounded-md text-xs ${
-                      r.status === 'playing' ? 'bg-success/20 text-success' :
-                      r.status === 'waiting' ? 'bg-warning/20 text-warning' : 'bg-gray-600/20 text-gray-400'
-                    }`}>
-                      {r.status === 'playing' ? 'جارية' : r.status === 'waiting' ? 'انتظار' : r.status || '—'}
-                    </span>
-                  </td>
+                  <td className="py-3 px-4 text-white">{r.host?.nickname || r.host || '—'}</td>
+                  <td className="py-3 px-4 text-center text-gray-300">{r.players?.length ?? r.players ?? 0}</td>
                   <td className="py-3 px-4 text-center">
-                    <button onClick={() => closeRoom(r.code)} className="px-3 py-1 rounded-lg bg-danger/20 text-danger hover:bg-danger/40 text-xs transition">
-                      إغلاق
-                    </button>
+                    <button onClick={() => closeRoom(r.code)} className="px-3 py-1 rounded-lg bg-danger/20 text-danger text-xs">إغلاق</button>
                   </td>
                 </tr>
               ))}
@@ -1793,39 +1690,30 @@ function MonitorTab() {
         </div>
       </div>
 
-      {/* Users */}
-      <div className="bg-surface rounded-xl border border-surface-light overflow-hidden">
+      <div className="bg-surface rounded-2xl border border-surface-light overflow-hidden">
         <div className="p-4 border-b border-surface-light">
-          <h3 className="text-accent font-bold flex items-center gap-2"><FiUsers /> المستخدمون المسجلون ({users.length})</h3>
+          <h3 className="text-accent font-bold flex items-center gap-2 text-sm"><FiUsers /> المستخدمون المسجلون ({users.length})</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-surface-light text-gray-400">
-                <th className="text-right py-3 px-4">الهاتف</th>
+              <tr className="border-b border-surface-light text-gray-400 text-xs">
+                <th className="text-right py-3 px-4">الهاتف / البريد</th>
                 <th className="text-right py-3 px-4">اللقب</th>
-                <th className="text-center py-3 px-4 hidden sm:table-cell">الصورة</th>
                 <th className="text-center py-3 px-4">النقاط</th>
-                <th className="text-center py-3 px-4 hidden md:table-cell">الألعاب</th>
                 <th className="text-center py-3 px-4">الحالة</th>
                 <th className="text-center py-3 px-4">إجراء</th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 && (
-                <tr><td colSpan={7} className="text-center text-gray-500 py-8">لا يوجد مستخدمون مسجلون</td></tr>
+                <tr><td colSpan={5} className="text-center text-gray-500 py-8 text-xs">لا يوجد مستخدمون مسجلون</td></tr>
               )}
               {users.map((u) => (
-                <tr key={u.id} className="border-b border-surface-light/30 hover:bg-surface/30 transition">
+                <tr key={u.id} className="border-b border-surface-light/30">
                   <td className="py-3 px-4 text-gray-300 font-mono text-xs" dir="ltr">{u.phone}</td>
                   <td className="py-3 px-4 text-white">{u.nickname || '—'}</td>
-                  <td className="py-3 px-4 text-center hidden sm:table-cell">
-                    {u.avatar ? (
-                      <span className="text-2xl">{u.avatar}</span>
-                    ) : <span className="text-gray-600">—</span>}
-                  </td>
                   <td className="py-3 px-4 text-center text-accent font-bold">{u.points ?? 0}</td>
-                  <td className="py-3 px-4 text-center text-gray-400 hidden md:table-cell">{u.gamesPlayed ?? 0}</td>
                   <td className="py-3 px-4 text-center">
                     <span className={`px-2 py-0.5 rounded-md text-xs ${u.banned ? 'bg-danger/20 text-danger' : 'bg-success/20 text-success'}`}>
                       {u.banned ? 'محظور' : 'نشط'}
@@ -1833,13 +1721,9 @@ function MonitorTab() {
                   </td>
                   <td className="py-3 px-4 text-center">
                     {u.banned ? (
-                      <button onClick={() => unbanUser(u.id)} className="px-3 py-1 rounded-lg bg-success/20 text-success hover:bg-success/40 text-xs transition">
-                        إلغاء الحظر
-                      </button>
+                      <button onClick={() => unbanUser(u.id)} className="px-3 py-1 rounded-lg bg-success/20 text-success text-xs">إلغاء الحظر</button>
                     ) : (
-                      <button onClick={() => banUser(u.id)} className="px-3 py-1 rounded-lg bg-danger/20 text-danger hover:bg-danger/40 text-xs transition">
-                        حظر
-                      </button>
+                      <button onClick={() => banUser(u.id)} className="px-3 py-1 rounded-lg bg-danger/20 text-danger text-xs">حظر</button>
                     )}
                   </td>
                 </tr>
@@ -1849,30 +1733,17 @@ function MonitorTab() {
         </div>
       </div>
 
-      {/* Leaderboard Reset */}
-      <div className="bg-surface rounded-xl p-5 border border-danger/30 space-y-3">
-        <h3 className="text-danger font-bold flex items-center gap-2">
-          <FiAlertTriangle /> إعادة تعيين لوحة المتصدرين
-        </h3>
-        <p className="text-gray-400 text-sm">سيؤدي هذا إلى حذف جميع نقاط اللاعبين وإعادة تعيين الترتيب. لا يمكن التراجع عن هذا الإجراء.</p>
+      <div className="bg-surface rounded-2xl p-5 border border-danger/30 space-y-3">
+        <h3 className="text-danger font-bold flex items-center gap-2 text-sm"><FiAlertTriangle /> إعادة تعيين لوحة المتصدرين</h3>
         <button
           onClick={handleResetLeaderboard}
-          className={`px-5 py-2.5 rounded-xl font-bold transition flex items-center gap-2 ${
-            resetStep === 0
-              ? 'bg-danger/20 text-danger hover:bg-danger/40'
-              : resetStep === 1
-                ? 'bg-danger/60 text-white hover:bg-danger'
-                : 'bg-danger text-white animate-pulse'
+          className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 ${
+            resetStep === 0 ? 'bg-danger/20 text-danger' : 'bg-danger text-white'
           }`}
         >
           <FiAlertTriangle />
-          {resetStep === 0 ? 'إعادة تعيين لوحة المتصدرين' : resetStep === 1 ? 'هل أنت متأكد؟ اضغط مرة أخرى' : 'تأكيد نهائي - لا رجعة!'}
+          {resetStep === 0 ? 'تصفير جميع النقاط' : resetStep === 1 ? 'هل أنت متأكد؟ اضغط ثانية' : 'تأكيد نهائي!'}
         </button>
-        {resetStep > 0 && (
-          <button onClick={() => setResetStep(0)} className="text-sm text-gray-500 hover:text-gray-300 transition mr-3">
-            إلغاء
-          </button>
-        )}
       </div>
     </div>
   );
@@ -1882,10 +1753,10 @@ function MonitorTab() {
    MAIN DASHBOARD LAYOUT
    ════════════════════════════════════════════════════ */
 function AdminDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('theme');
   const { logout, error, successMsg, clearMessages } = useAdminStore();
 
-  // Auto-dismiss toast
   useEffect(() => {
     if (error || successMsg) {
       const t = setTimeout(clearMessages, 4000);
@@ -1906,7 +1777,6 @@ function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-primary font-arabic" dir="rtl">
-      {/* Toast */}
       <AnimatePresence>
         {(error || successMsg) && (
           <Toast
@@ -1918,11 +1788,13 @@ function AdminDashboard() {
       </AnimatePresence>
 
       <div className="flex flex-col lg:flex-row min-h-screen">
-        {/* Sidebar (desktop) */}
+        {/* Sidebar */}
         <aside className="hidden lg:flex flex-col w-64 bg-secondary border-l border-surface-light shrink-0">
-          <div className="p-5 border-b border-surface-light">
-            <h1 className="text-xl font-bold text-accent">لوحة التحكم</h1>
-            <p className="text-sm text-gray-500 mt-1">هخلص عليك</p>
+          <div className="p-5 border-b border-surface-light space-y-1">
+            <div className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-accent/15 text-accent font-bold">
+              <FiLock size={10} /> إدارة خاصة ومخفية
+            </div>
+            <h1 className="text-xl font-black text-white">أستوديو هخلص عليك</h1>
           </div>
           <nav className="flex-1 p-3 space-y-1">
             {TABS.map((tab) => {
@@ -1933,22 +1805,29 @@ function AdminDashboard() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition ${
                     activeTab === tab.id
-                      ? 'bg-accent/15 text-accent font-bold'
+                      ? 'bg-accent/15 text-accent font-bold border border-accent/30'
                       : 'text-gray-400 hover:bg-surface hover:text-white'
                   }`}
                 >
-                  <Icon size={18} />
+                  <Icon size={17} />
                   <span>{tab.emoji} {tab.label}</span>
                 </button>
               );
             })}
           </nav>
-          <div className="p-3 border-t border-surface-light">
+          <div className="p-3 border-t border-surface-light space-y-1">
+            <button
+              onClick={() => navigate('/')}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-emerald-400 hover:bg-emerald-500/10 transition text-xs font-bold"
+            >
+              <FiExternalLink size={16} />
+              <span>معاينة الموقع مباشرة</span>
+            </button>
             <button
               onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-danger/15 hover:text-danger transition text-sm"
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-gray-400 hover:bg-danger/15 hover:text-danger transition text-xs font-bold"
             >
-              <FiLogOut size={18} />
+              <FiLogOut size={16} />
               <span>تسجيل الخروج</span>
             </button>
           </div>
@@ -1956,15 +1835,17 @@ function AdminDashboard() {
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0">
-          {/* Top bar (mobile) */}
           <header className="lg:hidden flex items-center justify-between bg-secondary border-b border-surface-light px-4 py-3">
-            <h1 className="text-lg font-bold text-accent">لوحة التحكم</h1>
-            <button onClick={logout} className="text-gray-400 hover:text-danger transition">
-              <FiLogOut size={20} />
-            </button>
+            <div className="flex items-center gap-2">
+              <FiLock className="text-accent" />
+              <h1 className="text-base font-black text-white">أستوديو الإدارة</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigate('/')} className="text-emerald-400 text-xs font-bold">معاينة</button>
+              <button onClick={logout} className="text-gray-400 hover:text-danger"><FiLogOut size={18} /></button>
+            </div>
           </header>
 
-          {/* Tab Content */}
           <div className="flex-1 p-4 lg:p-6 overflow-y-auto pb-24 lg:pb-6">
             <AnimatePresence mode="wait">
               <motion.div key={activeTab} variants={tabVariants} initial="hidden" animate="visible" exit="exit">
@@ -1973,7 +1854,6 @@ function AdminDashboard() {
             </AnimatePresence>
           </div>
 
-          {/* Bottom Tabs (mobile) */}
           <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-secondary border-t border-surface-light flex z-40">
             {TABS.map((tab) => {
               const Icon = tab.icon;
@@ -1981,12 +1861,12 @@ function AdminDashboard() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs transition ${
-                    activeTab === tab.id ? 'text-accent' : 'text-gray-500'
+                  className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] transition ${
+                    activeTab === tab.id ? 'text-accent font-bold' : 'text-gray-500'
                   }`}
                 >
-                  <Icon size={18} />
-                  <span className="truncate max-w-[60px]">{tab.label}</span>
+                  <Icon size={17} />
+                  <span className="truncate max-w-[64px]">{tab.label}</span>
                 </button>
               );
             })}
@@ -1998,9 +1878,9 @@ function AdminDashboard() {
 }
 
 /* ════════════════════════════════════════════════════
-   EXPORTED PAGE
+   EXPORTED PAGE COMPONENT
    ════════════════════════════════════════════════════ */
 export default function AdminPage() {
-  const { isAdmin } = useAdminStore();
+  const isAdmin = useAdminStore((s) => s.isAdmin);
   return isAdmin ? <AdminDashboard /> : <AdminLogin />;
 }

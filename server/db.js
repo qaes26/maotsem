@@ -377,12 +377,73 @@ class Database {
       question: q.question,
       options: q.options,
       correctAnswer: q.correct_answer,
+      correctAnswerText: q.options && typeof q.correct_answer === 'number' ? q.options[q.correct_answer] : q.correct_answer_text,
       points: q.points,
       difficulty: q.difficulty,
       explanation: q.explanation,
       mediaType: q.media_type,
       mediaUrl: q.media_url,
+      isCustom: true,
     }));
+  }
+
+  async addQuestion(q) {
+    if (!this.useSupabase) return null;
+    const row = {
+      category_slug: q.category || q.category_slug || 'general',
+      subcategory_slug: q.subcategory || q.subcategory_slug || q.category || 'general',
+      question: q.question,
+      options: q.options || [q.correctAnswerText || 'الإجابة الصحيحة'],
+      correct_answer: typeof q.correctAnswer === 'number' ? q.correctAnswer : 0,
+      points: Number(q.points) || 200,
+      difficulty: q.difficulty || 'medium',
+      explanation: q.explanation || '',
+      media_type: q.mediaType || null,
+      media_url: q.mediaUrl || null,
+      is_active: true,
+    };
+    const { data, error } = await supabase.from('questions').insert([row]).select().single();
+    if (error) throw new Error(error.message);
+    return {
+      id: data.id,
+      category: data.category_slug,
+      subcategory: data.subcategory_slug,
+      question: data.question,
+      options: data.options,
+      correctAnswer: data.correct_answer,
+      correctAnswerText: data.options?.[data.correct_answer] || q.correctAnswerText,
+      points: data.points,
+      difficulty: data.difficulty,
+      explanation: data.explanation,
+      mediaType: data.media_type,
+      mediaUrl: data.media_url,
+      isCustom: true,
+    };
+  }
+
+  async updateQuestion(id, updates) {
+    if (!this.useSupabase) return null;
+    const row = {};
+    if (updates.category !== undefined) row.category_slug = updates.category;
+    if (updates.subcategory !== undefined) row.subcategory_slug = updates.subcategory;
+    if (updates.question !== undefined) row.question = updates.question;
+    if (updates.options !== undefined) row.options = updates.options;
+    if (updates.correctAnswer !== undefined) row.correct_answer = updates.correctAnswer;
+    if (updates.points !== undefined) row.points = Number(updates.points);
+    if (updates.difficulty !== undefined) row.difficulty = updates.difficulty;
+    if (updates.explanation !== undefined) row.explanation = updates.explanation;
+    if (updates.mediaType !== undefined) row.media_type = updates.mediaType;
+    if (updates.mediaUrl !== undefined) row.media_url = updates.mediaUrl;
+    const { data, error } = await supabase.from('questions').update(row).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async deleteQuestion(id) {
+    if (!this.useSupabase) return false;
+    const { error } = await supabase.from('questions').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    return true;
   }
 
   async getAuctions() {
