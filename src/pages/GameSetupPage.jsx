@@ -32,40 +32,256 @@ export const CATEGORY_SECTIONS = [
 
 export const ALL_AVAILABLE_CATEGORIES = [
   // ⚽ كرة القدم والرياضة
-  { id: 'premier-league', name: 'الدوري الإنجليزي الممتاز', icon: '🦁', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-purple-600/30 to-purple-900/30', border: 'border-purple-500/40' },
-  { id: 'la-liga', name: 'الدوري الإسباني', icon: '🇪🇸', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-amber-600/30 to-amber-900/30', border: 'border-amber-500/40' },
-  { id: 'clasico', name: 'كلاسيكو ريال مدريد وبرشلونة', icon: '⚔️', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-red-600/30 to-blue-900/30', border: 'border-red-500/40' },
-  { id: 'champions-league', name: 'دوري أبطال أوروبا', icon: '⭐', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-blue-600/30 to-blue-900/30', border: 'border-blue-500/40' },
-  { id: 'world-cup-2022', name: 'كأس العالم 2022 قطر', icon: '🏆', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-rose-600/30 to-amber-900/30', border: 'border-rose-500/40' },
-  { id: 'world-cup', name: 'بطولات كأس العالم التاريخية', icon: '🌍', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-emerald-600/30 to-emerald-900/30', border: 'border-emerald-500/40' },
-  { id: 'ronaldo', name: 'كريستيانو رونالدو (الدون)', icon: '🐐', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-yellow-600/30 to-yellow-900/30', border: 'border-yellow-500/40' },
-  { id: 'messi', name: 'ليونيل ميسي (البرغوث)', icon: '🐐', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-cyan-600/30 to-blue-900/30', border: 'border-cyan-500/40' },
-  { id: 'serie-a', name: 'الدوري الإيطالي (الكالتشيو)', icon: '🇮🇹', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-green-600/30 to-emerald-900/30', border: 'border-green-500/40' },
-  { id: 'bundesliga', name: 'الدوري الألماني (البوندسليغا)', icon: '🇩🇪', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-yellow-600/30 to-red-900/30', border: 'border-yellow-500/40' },
-  { id: 'coaches', name: 'أساطير التدريب والتكتيك', icon: '👔', sectionId: 'football', sectionName: 'كرة قدم', color: 'from-indigo-600/30 to-indigo-900/30', border: 'border-indigo-500/40' },
-  { id: 'sports-general', name: 'رياضة عامة وأولمبياد', icon: '🥇', sectionId: 'football', sectionName: 'رياضة عامة', color: 'from-teal-600/30 to-teal-900/30', border: 'border-teal-500/40' },
+  {
+    id: 'premier-league',
+    name: 'الدوري الإنجليزي الممتاز',
+    icon: '🦁',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80',
+    color: 'from-purple-600/30 to-purple-900/30',
+    border: 'border-purple-500/40',
+  },
+  {
+    id: 'la-liga',
+    name: 'الدوري الإسباني',
+    icon: '🇪🇸',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=600&q=80',
+    color: 'from-amber-600/30 to-amber-900/30',
+    border: 'border-amber-500/40',
+  },
+  {
+    id: 'clasico',
+    name: 'كلاسيكو ريال مدريد وبرشلونة',
+    icon: '⚔️',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=600&q=80',
+    color: 'from-red-600/30 to-blue-900/30',
+    border: 'border-red-500/40',
+  },
+  {
+    id: 'champions-league',
+    name: 'دوري أبطال أوروبا',
+    icon: '⭐',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=600&q=80',
+    color: 'from-blue-600/30 to-blue-900/30',
+    border: 'border-blue-500/40',
+  },
+  {
+    id: 'world-cup-2022',
+    name: 'كأس العالم 2022 قطر',
+    icon: '🏆',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=600&q=80',
+    color: 'from-rose-600/30 to-amber-900/30',
+    border: 'border-rose-500/40',
+  },
+  {
+    id: 'world-cup',
+    name: 'بطولات كأس العالم التاريخية',
+    icon: '🌍',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=600&q=80',
+    color: 'from-emerald-600/30 to-emerald-900/30',
+    border: 'border-emerald-500/40',
+  },
+  {
+    id: 'ronaldo',
+    name: 'كريستيانو رونالدو (الدون)',
+    icon: '🐐',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=600&q=80',
+    color: 'from-yellow-600/30 to-yellow-900/30',
+    border: 'border-yellow-500/40',
+  },
+  {
+    id: 'messi',
+    name: 'ليونيل ميسي (البرغوث)',
+    icon: '🐐',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?auto=format&fit=crop&w=600&q=80',
+    color: 'from-cyan-600/30 to-blue-900/30',
+    border: 'border-cyan-500/40',
+  },
+  {
+    id: 'serie-a',
+    name: 'الدوري الإيطالي (الكالتشيو)',
+    icon: '🇮🇹',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=600&q=80',
+    color: 'from-green-600/30 to-emerald-900/30',
+    border: 'border-green-500/40',
+  },
+  {
+    id: 'bundesliga',
+    name: 'الدوري الألماني (البوندسليغا)',
+    icon: '🇩🇪',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=600&q=80',
+    color: 'from-yellow-600/30 to-red-900/30',
+    border: 'border-yellow-500/40',
+  },
+  {
+    id: 'coaches',
+    name: 'أساطير التدريب والتكتيك',
+    icon: '👔',
+    sectionId: 'football',
+    sectionName: 'كرة قدم',
+    image: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=600&q=80',
+    color: 'from-indigo-600/30 to-indigo-900/30',
+    border: 'border-indigo-500/40',
+  },
+  {
+    id: 'sports-general',
+    name: 'رياضة عامة وأولمبياد',
+    icon: '🥇',
+    sectionId: 'football',
+    sectionName: 'رياضة عامة',
+    image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=600&q=80',
+    color: 'from-teal-600/30 to-teal-900/30',
+    border: 'border-teal-500/40',
+  },
 
   // 🎬 السينما والمسلسلات
-  { id: 'bab-al-hara', name: 'باب الحارة وحارة الضبع', icon: '🗡️', sectionId: 'series', sectionName: 'مسلسلات', color: 'from-stone-600/30 to-stone-900/30', border: 'border-stone-500/40' },
-  { id: 'arabic-series', name: 'مسلسلات عربية ومصرية', icon: '📺', sectionId: 'series', sectionName: 'مسلسلات', color: 'from-rose-600/30 to-rose-900/30', border: 'border-rose-500/40' },
-  { id: 'global-movies', name: 'أفلام عالمية وهوليوود', icon: '🍿', sectionId: 'series', sectionName: 'سينما', color: 'from-pink-600/30 to-pink-900/30', border: 'border-pink-500/40' },
-  { id: 'global-series', name: 'مسلسلات أجنبية وعالمية', icon: '🎬', sectionId: 'series', sectionName: 'مسلسلات', color: 'from-purple-600/30 to-purple-900/30', border: 'border-purple-500/40' },
+  {
+    id: 'bab-al-hara',
+    name: 'باب الحارة وحارة الضبع',
+    icon: '🗡️',
+    sectionId: 'series',
+    sectionName: 'مسلسلات',
+    image: 'https://images.unsplash.com/photo-1579273166152-d725a4e2b755?auto=format&fit=crop&w=600&q=80',
+    color: 'from-stone-600/30 to-stone-900/30',
+    border: 'border-stone-500/40',
+  },
+  {
+    id: 'arabic-series',
+    name: 'مسلسلات عربية ومصرية',
+    icon: '📺',
+    sectionId: 'series',
+    sectionName: 'مسلسلات',
+    image: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=600&q=80',
+    color: 'from-rose-600/30 to-rose-900/30',
+    border: 'border-rose-500/40',
+  },
+  {
+    id: 'global-movies',
+    name: 'أفلام عالمية وهوليوود',
+    icon: '🍿',
+    sectionId: 'series',
+    sectionName: 'سينما',
+    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80',
+    color: 'from-pink-600/30 to-pink-900/30',
+    border: 'border-pink-500/40',
+  },
+  {
+    id: 'global-series',
+    name: 'مسلسلات أجنبية وعالمية',
+    icon: '🎬',
+    sectionId: 'series',
+    sectionName: 'مسلسلات',
+    image: 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?auto=format&fit=crop&w=600&q=80',
+    color: 'from-purple-600/30 to-purple-900/30',
+    border: 'border-purple-500/40',
+  },
 
   // 💡 الثقافة العامة والمعلومات
-  { id: 'culture', name: 'معلومات عامة وثقافية', icon: '💡', sectionId: 'general', sectionName: 'ثقافة عامة', color: 'from-teal-600/30 to-teal-900/30', border: 'border-teal-500/40' },
+  {
+    id: 'culture',
+    name: 'معلومات عامة وثقافية',
+    icon: '💡',
+    sectionId: 'general',
+    sectionName: 'ثقافة عامة',
+    image: 'https://images.unsplash.com/photo-1507842229451-28b981503c5b?auto=format&fit=crop&w=600&q=80',
+    color: 'from-teal-600/30 to-teal-900/30',
+    border: 'border-teal-500/40',
+  },
 
   // 💄 فئة البنات
-  { id: 'fashion-beauty', name: 'موضة وجمال ومكياج', icon: '💄', sectionId: 'girls', sectionName: 'بنات', color: 'from-fuchsia-600/30 to-fuchsia-900/30', border: 'border-fuchsia-500/40' },
-  { id: 'lifestyle', name: 'لايف ستايل وأناقة', icon: '👗', sectionId: 'girls', sectionName: 'بنات', color: 'from-pink-600/30 to-pink-900/30', border: 'border-pink-500/40' },
+  {
+    id: 'fashion-beauty',
+    name: 'موضة وجمال ومكياج',
+    icon: '💄',
+    sectionId: 'girls',
+    sectionName: 'بنات',
+    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
+    color: 'from-fuchsia-600/30 to-fuchsia-900/30',
+    border: 'border-fuchsia-500/40',
+  },
+  {
+    id: 'lifestyle',
+    name: 'لايف ستايل وأناقة',
+    icon: '👗',
+    sectionId: 'girls',
+    sectionName: 'بنات',
+    image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=600&q=80',
+    color: 'from-pink-600/30 to-pink-900/30',
+    border: 'border-pink-500/40',
+  },
 
   // 🔢 الرياضيات والذكاء
-  { id: 'mental-math', name: 'حساب ذهني وسرعة بديهة', icon: '🔢', sectionId: 'math', sectionName: 'رياضيات', color: 'from-cyan-600/30 to-cyan-900/30', border: 'border-cyan-500/40' },
-  { id: 'puzzles', name: 'ألغاز وتفكير منطقي', icon: '🧩', sectionId: 'math', sectionName: 'ذكاء', color: 'from-blue-600/30 to-blue-900/30', border: 'border-blue-500/40' },
+  {
+    id: 'mental-math',
+    name: 'حساب ذهني وسرعة بديهة',
+    icon: '🔢',
+    sectionId: 'math',
+    sectionName: 'رياضيات',
+    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80',
+    color: 'from-cyan-600/30 to-cyan-900/30',
+    border: 'border-cyan-500/40',
+  },
+  {
+    id: 'puzzles',
+    name: 'ألغاز وتفكير منطقي',
+    icon: '🧩',
+    sectionId: 'math',
+    sectionName: 'ذكاء',
+    image: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=600&q=80',
+    color: 'from-blue-600/30 to-blue-900/30',
+    border: 'border-blue-500/40',
+  },
 
   // 📖 اللغة العربية
-  { id: 'plurals', name: 'جموع نادرة وتحدي المفردات', icon: '📖', sectionId: 'arabic', sectionName: 'لغة عربية', color: 'from-orange-600/30 to-orange-900/30', border: 'border-orange-500/40' },
-  { id: 'roots', name: 'جذور الكلمات والمعاجم', icon: '📜', sectionId: 'arabic', sectionName: 'لغة عربية', color: 'from-amber-600/30 to-amber-900/30', border: 'border-amber-500/40' },
-  { id: 'vocabulary', name: 'فصاحة وبلاغة وأمثال', icon: '🖋️', sectionId: 'arabic', sectionName: 'لغة عربية', color: 'from-lime-600/30 to-lime-900/30', border: 'border-lime-500/40' },
+  {
+    id: 'plurals',
+    name: 'جموع نادرة وتحدي المفردات',
+    icon: '📖',
+    sectionId: 'arabic',
+    sectionName: 'لغة عربية',
+    image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80',
+    color: 'from-orange-600/30 to-orange-900/30',
+    border: 'border-orange-500/40',
+  },
+  {
+    id: 'roots',
+    name: 'جذور الكلمات والمعاجم',
+    icon: '📜',
+    sectionId: 'arabic',
+    sectionName: 'لغة عربية',
+    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
+    color: 'from-amber-600/30 to-amber-900/30',
+    border: 'border-amber-500/40',
+  },
+  {
+    id: 'vocabulary',
+    name: 'فصاحة وبلاغة وأمثال',
+    icon: '🖋️',
+    sectionId: 'arabic',
+    sectionName: 'لغة عربية',
+    image: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=600&q=80',
+    color: 'from-lime-600/30 to-lime-900/30',
+    border: 'border-lime-500/40',
+  },
 ];
 
 export default function GameSetupPage({ onStart }) {
@@ -253,18 +469,20 @@ export default function GameSetupPage({ onStart }) {
                       key={cat.id}
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="relative p-3 rounded-2xl bg-white/10 border border-[var(--color-accent)]/50 text-center flex flex-col items-center justify-between min-h-[90px] shadow-md group"
+                      className="relative p-2.5 rounded-2xl border-2 border-[var(--color-accent)] text-center flex flex-col items-center justify-between min-h-[95px] shadow-lg group overflow-hidden bg-cover bg-center"
+                      style={{ backgroundImage: `url(${cat.image})` }}
                     >
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/75 to-slate-900/50 backdrop-blur-[0.5px]" />
                       <button
                         onClick={() => handleToggleCategory(cat.id)}
-                        className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center opacity-80 hover:opacity-100 shadow"
+                        className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center opacity-90 hover:opacity-100 shadow-md z-10"
                         title="إزالة الفئة"
                       >
                         ✕
                       </button>
-                      <span className="text-xl">{cat.icon}</span>
-                      <span className="text-xs font-bold text-white line-clamp-1">{cat.name}</span>
-                      <span className="text-[9px] text-[var(--color-accent)] font-semibold">{cat.sectionName}</span>
+                      <span className="text-xl relative z-10 drop-shadow">{cat.icon}</span>
+                      <span className="text-xs font-black text-white line-clamp-1 relative z-10 drop-shadow">{cat.name}</span>
+                      <span className="text-[9px] text-[var(--color-accent)] font-bold relative z-10">{cat.sectionName}</span>
                     </motion.div>
                   );
                 }
@@ -272,7 +490,7 @@ export default function GameSetupPage({ onStart }) {
                 return (
                   <div
                     key={`empty-${slotIdx}`}
-                    className="p-3 rounded-2xl border-2 border-dashed border-white/15 bg-white/5 text-center flex flex-col items-center justify-center min-h-[90px] text-white/30"
+                    className="p-3 rounded-2xl border-2 border-dashed border-white/15 bg-white/5 text-center flex flex-col items-center justify-center min-h-[95px] text-white/30"
                   >
                     <span className="text-xs font-mono font-bold mb-1">فئة {slotIdx + 1}</span>
                     <span className="text-[10px]">+ شاغرة</span>
@@ -337,28 +555,36 @@ export default function GameSetupPage({ onStart }) {
               return (
                 <motion.div
                   key={cat.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => handleToggleCategory(cat.id)}
-                  className={`relative p-4 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between h-36 ${
+                  className={`relative p-4 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between h-40 overflow-hidden shadow-xl ${
                     isSelected
-                      ? `bg-gradient-to-br ${cat.color} ${cat.border} shadow-lg shadow-[var(--color-accent)]/20 scale-[1.02]`
-                      : 'bg-[var(--color-surface)]/60 border-white/5 hover:border-white/20 opacity-75 hover:opacity-100'
+                      ? 'border-[var(--color-accent)] ring-4 ring-[var(--color-accent)]/40 scale-[1.02]'
+                      : 'border-white/10 hover:border-white/30 opacity-90 hover:opacity-100'
                   }`}
+                  style={{
+                    backgroundImage: `url(${cat.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl">{cat.icon}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/40 text-white/80">
+                  {/* Dark gradient overlay for perfect readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-slate-900/40" />
+
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className="text-2xl drop-shadow-md">{cat.icon}</span>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/10 shadow">
                       {cat.sectionName}
                     </span>
                   </div>
 
-                  <div>
-                    <h3 className="text-sm font-black text-white leading-snug">{cat.name}</h3>
+                  <div className="relative z-10">
+                    <h3 className="text-sm font-black text-white leading-snug drop-shadow-lg">{cat.name}</h3>
                   </div>
 
                   {isSelected && (
-                    <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-accent)] text-[var(--color-primary)] flex items-center gap-1 text-[11px] font-black shadow-md">
+                    <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-accent)] text-[var(--color-primary)] flex items-center gap-1 text-[11px] font-black shadow-xl z-20">
                       <FaCheck className="text-[10px]" />
                       <span>فئة {selectionIndex + 1}</span>
                     </div>

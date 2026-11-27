@@ -172,12 +172,12 @@ export default function AuctionPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-white">مزاد كرة القدم (Football Auction)</h1>
+              <h1 className="text-2xl font-black text-white">المزاد الكبير 🔥</h1>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
                 جولة المزايدة والتحدي
               </span>
             </div>
-            <p className="text-xs text-white/50">زايد على عدد الإجابات التي يستطيع فريقك تسميتها خلال 45 ثانية!</p>
+            <p className="text-xs text-white/50">زايد على عدد الإجابات — رياضة، ثقافة، دين، جغرافيا، وأكثر!</p>
           </div>
         </div>
 

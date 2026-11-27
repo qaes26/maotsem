@@ -20,7 +20,7 @@ import {
   FaEye,
 } from 'react-icons/fa';
 
-import GameSetupPage from './GameSetupPage';
+import GameSetupPage, { ALL_AVAILABLE_CATEGORIES } from './GameSetupPage';
 import QuestionCard from '../components/Game/QuestionCard';
 import LifelinePanel from '../components/Game/LifelinePanel';
 import Scoreboard from '../components/Game/Scoreboard';
@@ -101,7 +101,10 @@ export default function GameBoardPage() {
       );
 
       const sample = catQuestions[0];
-      const catName = sample ? sample.subcategoryName || sample.categoryName || catId : catId;
+      const catMeta = ALL_AVAILABLE_CATEGORIES.find((c) => c.id === catId);
+      const catName = catMeta ? catMeta.name : (sample ? sample.subcategoryName || sample.categoryName || catId : catId);
+      const catIcon = catMeta ? catMeta.icon : '🎯';
+      const catImage = catMeta ? catMeta.image : 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80';
 
       // Track picked questions for this column to guarantee 3 distinct questions
       const usedIdsInCol = new Set();
@@ -154,6 +157,8 @@ export default function GameBoardPage() {
       return {
         id: catId,
         name: catName,
+        icon: catIcon,
+        image: catImage,
         questions,
       };
     });
@@ -530,11 +535,20 @@ export default function GameBoardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {boardQuestions.map((col, cIdx) => (
             <div key={col.id || cIdx} className="space-y-3">
-              {/* Category Header Card */}
-              <div className="p-3 sm:p-4 rounded-2xl bg-[var(--color-surface)] border border-white/10 text-center flex flex-col justify-center min-h-[75px] shadow-md">
-                <span className="text-xs sm:text-sm font-black text-white leading-tight line-clamp-2">
-                  {col.name}
-                </span>
+              {/* Category Header Card with Real Image */}
+              <div
+                className="p-3 sm:p-4 rounded-2xl border border-white/10 text-center flex flex-col justify-end min-h-[92px] shadow-lg relative overflow-hidden bg-cover bg-center group"
+                style={{
+                  backgroundImage: `url(${col.image || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80'})`,
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-slate-900/40 backdrop-blur-[0.5px]" />
+                <div className="relative z-10">
+                  <span className="text-lg block mb-0.5 drop-shadow">{col.icon || '🎯'}</span>
+                  <span className="text-xs sm:text-sm font-black text-white leading-tight line-clamp-2 drop-shadow-md">
+                    {col.name}
+                  </span>
+                </div>
               </div>
 
               {/* Point Buttons (200, 400, 600) */}
